@@ -34,14 +34,15 @@ after_success:
 
 
 deploy:
-  - provider: script
-    script: "cp .travis.settings.xml $HOME/.m2/settings.xml && mvn deploy"
+  - provider: releases
+    api_key: $GITHUB_API_KEY
+    file_glob: true
+    file: "/home/travis/build/sanyarnd/applocker/target/app-locker*.jar"
     skip_cleanup: true
     on:
       tags: true
-  - provider: releases
-    api_key: $GITHUB_API_KEY
-    file: "/home/travis/build/sanyarnd/applocker/target/app-locker*.jar"
+  - provider: script
+    script: "cp .travis.settings.xml $HOME/.m2/settings.xml && mvn deploy"
     skip_cleanup: true
     on:
       tags: true
