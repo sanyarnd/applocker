@@ -121,7 +121,7 @@ public class AppLockerTest {
         l1.lock();
 
         String messageToSelf = l1.sendMessage("self");
-        Assertions.assertEquals(messageToSelf, "self");
+        Assertions.assertEquals("self", messageToSelf);
 
         // cleanup
         l1.unlock();
@@ -135,7 +135,7 @@ public class AppLockerTest {
         l1.lock();
 
         String messageToOther = l2.sendMessage("other");
-        Assertions.assertEquals(messageToOther, "other");
+        Assertions.assertEquals("other", messageToOther);
 
         // cleanup
         l1.unlock();
@@ -170,13 +170,13 @@ public class AppLockerTest {
 
         l1.lock();
         String messageToOther = l2.sendMessage("whatever");
-        Assertions.assertEquals(messageToOther, "1");
+        Assertions.assertEquals("1", messageToOther);
 
         l1.unlock();
 
         l2.lock();
         messageToOther = l1.sendMessage("whatever");
-        Assertions.assertEquals(messageToOther, "2");
+        Assertions.assertEquals("2", messageToOther);
 
         // cleanup
         l1.unlock();
@@ -197,6 +197,12 @@ public class AppLockerTest {
 
         // cleanup
         l1.unlock();
+    }
+
+    @Test
+    public void to_string() {
+        AppLocker l1 = AppLocker.create("sameId").build();
+        Assertions.assertNotEquals(l1.toString(), null);
     }
 
     @Test

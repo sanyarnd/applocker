@@ -51,7 +51,7 @@ public class AppLockerHandlersTest {
         Assertions.assertTrue(l1.isLocked());
         Assertions.assertFalse(l2.isLocked());
         // test that failed handler is called
-        Assertions.assertEquals(ret[0], -1);
+        Assertions.assertEquals(-1, ret[0]);
 
         // cleanup
         l1.unlock();
@@ -70,7 +70,7 @@ public class AppLockerHandlersTest {
         Assertions.assertFalse(l2.isLocked());
 
         // test that busy handler is called
-        Assertions.assertEquals(ret[0], 1);
+        Assertions.assertEquals(1, ret[0]);
 
         // cleanup
         l1.unlock();
@@ -91,7 +91,7 @@ public class AppLockerHandlersTest {
         Assertions.assertTrue(l1.isLocked());
         Assertions.assertFalse(l2.isLocked());
         // test that failed handler is called
-        Assertions.assertEquals(ret[0], -1);
+        Assertions.assertEquals(-1, ret[0]);
 
         // cleanup
         l1.unlock();
@@ -106,7 +106,7 @@ public class AppLockerHandlersTest {
         l1.lock();
         Assertions.assertTrue(l1.isLocked());
         // test that failed handler is called
-        Assertions.assertEquals(ret[0], 1);
+        Assertions.assertEquals(1, ret[0]);
 
         // cleanup
         l1.unlock();

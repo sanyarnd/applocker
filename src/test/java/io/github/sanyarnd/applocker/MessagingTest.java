@@ -17,6 +17,7 @@
 
 package io.github.sanyarnd.applocker;
 
+import java.io.EOFException;
 import java.io.Serializable;
 import java.util.ArrayList;
 
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
+import io.github.sanyarnd.applocker.exceptions.LockingMessageServerException;
 import io.github.sanyarnd.applocker.messaging.Client;
 import io.github.sanyarnd.applocker.messaging.MessageHandler;
 import io.github.sanyarnd.applocker.messaging.Server;
@@ -103,6 +105,25 @@ public class MessagingTest {
 
         final String message = "test";
         Assertions.assertThrows(LockingCommunicationException.class, () -> client.send(message));
+    }
+
+    @Test
+    public void port_throws_if_no_server() {
+        final Server<String, String> server = new Server<>(createEchoHandler());
+
+        Assertions.assertThrows(LockingCommunicationException.class, server::getPort);
+    }
+
+    @Test
+    public void port_throws_if_server_exception() {
+        final Server<String, String> server = new Server<>(e -> {
+            throw new IllegalArgumentException();
+        });
+
+        server.start();
+        final Client<String, String> client = new Client<>(server.getPortBlocking());
+        Assertions.assertThrows(LockingCommunicationException.class, () -> client.send("test"));
+        Assertions.assertThrows(LockingMessageServerException.class, server::getPortBlocking);
     }
 
     @Test

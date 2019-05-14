@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -32,14 +33,14 @@ import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.ToString;
 
-import io.github.sanyarnd.applocker.builder.Builder;
-import io.github.sanyarnd.applocker.builder.BuilderArgs;
 import io.github.sanyarnd.applocker.exceptions.LockingBusyException;
 import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
 import io.github.sanyarnd.applocker.exceptions.LockingException;
 import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
 import io.github.sanyarnd.applocker.filesystem.LockNameProvider;
+import io.github.sanyarnd.applocker.filesystem.Sha1Provider;
 import io.github.sanyarnd.applocker.messaging.Client;
+import io.github.sanyarnd.applocker.messaging.MessageHandler;
 import io.github.sanyarnd.applocker.messaging.Server;
 
 /**
@@ -75,13 +76,13 @@ public final class AppLocker {
     @Nonnull
     private final Consumer<LockingException> failedHandler;
 
-    public AppLocker(@Nonnull String id,
-                     @Nonnull Path lockPath,
-                     @Nonnull LockNameProvider provider,
-                     @Nullable Server<?, ?> server,
-                     @Nonnull Runnable acquiredHandler,
-                     @Nullable BiConsumer<AppLocker, LockingBusyException> busyHandler,
-                     @Nonnull Consumer<LockingException> failedHandler) {
+    private AppLocker(@Nonnull String id,
+                      @Nonnull Path lockPath,
+                      @Nonnull LockNameProvider provider,
+                      @Nullable Server<?, ?> server,
+                      @Nonnull Runnable acquiredHandler,
+                      @Nullable BiConsumer<AppLocker, LockingBusyException> busyHandler,
+                      @Nonnull Consumer<LockingException> failedHandler) {
         this.id = id;
         this.server = server;
         this.acquiredHandler = acquiredHandler;
@@ -105,7 +106,7 @@ public final class AppLocker {
      * @param id AppLocker unique ID
      * @return builder
      */
-    public static BuilderArgs create(@Nonnull String id) {
+    public static Builder create(@Nonnull String id) {
         return new Builder(id);
     }
 
@@ -221,5 +222,118 @@ public final class AppLocker {
         return ByteBuffer.wrap(Files.readAllBytes(portFile)).getInt();
     }
 
+    /**
+     * AppLocker builder
+     *
+     * @author Alexander Biryukov
+     */
+    public static final class Builder {
+        @Nonnull
+        private final String id;
+        @Nonnull
+        private Path path = Paths.get(".");
+        @Nonnull
+        private LockNameProvider provider = new Sha1Provider();
+        @Nullable
+        private MessageHandler<?, ?> handler = null;
+        @Nonnull
+        private Runnable acquiredHandler = () -> {};
+        @Nonnull
+        private Consumer<LockingException> failedHandler = ex -> { throw ex; };
+        @Nullable
+        private BiConsumer<AppLocker, LockingBusyException> busyHandler;
 
+        public Builder(@Nonnull String id) { this.id = id; }
+
+        /**
+         * Sets the path where the lock file will be stored<br/>
+         * Default value is "." (relative)
+         *
+         * @param path store path
+         * @return builder
+         */
+        public Builder setPath(@Nonnull Path path) {
+            this.path = path;
+            return this;
+        }
+
+        /**
+         * Sets the message handler.<br/>
+         * If not set, AppLocker won't support communication features <br/>
+         * Default value is null
+         *
+         * @param handler message handler
+         * @return builder
+         */
+        public Builder setMessageHandler(@Nonnull MessageHandler<?, ?> handler) {
+            this.handler = handler;
+            return this;
+        }
+
+        /**
+         * Sets the name provider.<br/>
+         * Provider encodes lock id to filesystem-friendly entry<br/>
+         * Default value is {@link Sha1Provider}
+         *
+         * @param provider name provider
+         * @return builder
+         */
+        public Builder setNameProvider(@Nonnull LockNameProvider provider) {
+            this.provider = provider;
+            return this;
+        }
+
+        /**
+         * Successful locking callback.<br/>
+         * By default does nothing
+         *
+         * @param callback the function to call after successful locking
+         * @return builder
+         */
+        public Builder acquired(@Nonnull Runnable callback) {
+            acquiredHandler = callback;
+            return this;
+        }
+
+        /**
+         * Lock is already taken callback.<br/>
+         * By default does nothing (null)
+         *
+         * @param message message for lock holder
+         * @param handler answer processing function
+         * @param <T>     answer type
+         * @return builder
+         */
+        public <T extends Serializable> Builder busy(@Nonnull Serializable message, @Nonnull Consumer<T> handler) {
+            busyHandler = (appLocker, ex) -> {
+                T answer = appLocker.sendMessage(message);
+                handler.accept(answer);
+            };
+            return this;
+        }
+
+        /**
+         * Unable to lock for unknown reasons callback.<br/>
+         * By default re-throws the exception
+         *
+         * @param handler error processing function
+         * @return builder
+         */
+        public Builder failed(@Nonnull Consumer<LockingException> handler) {
+            failedHandler = handler;
+            return this;
+        }
+
+        /**
+         * Build AppLocker
+         *
+         * @return AppLocker instance
+         */
+        public AppLocker build() {
+            @SuppressWarnings("unchecked")
+            Server<?, ?> server = handler != null ? new Server(handler) : null;
+
+            return new AppLocker(id, path, provider, server, acquiredHandler, busyHandler, failedHandler);
+        }
+    }
 }

@@ -6,7 +6,7 @@
 
     <groupId>io.github.sanyarnd</groupId>
     <artifactId>app-locker</artifactId>
-    <version>1.0</version>
+    <version>1.0.1</version>
     <url>https://github.com/sanyarnd/applocker</url>
     <packaging>jar</packaging>
 
@@ -33,7 +33,6 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <java-version>1.8</java-version>
-        <!--<maven.compiler.release>${java-version}</maven.compiler.release>-->
         <maven.compiler.source>${java-version}</maven.compiler.source>
         <maven.compiler.target>${java-version}</maven.compiler.target>
         <maven.compiler.useIncrementalCompilation>true</maven.compiler.useIncrementalCompilation>
@@ -147,7 +146,6 @@
                     <analyzer>
                         <outputType>xml</outputType>
                         <outputFile>target/reports/pvs-output.xml</outputFile>
-                        <!--<sonarQubeData>sonar-project.properties</sonarQubeData>-->
                     </analyzer>
                 </configuration>
             </plugin>
