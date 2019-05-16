@@ -28,21 +28,22 @@ before_script:
 after_success:
   - mvn pvsstudio:pvsCredentials
   - mvn pvsstudio:pvsAnalyze
-  - mvn sonar:sonar
+  - mvn sonar:sonar -DskipTests=true
   - fossa init
   - fossa analyze
-
 
 deploy:
   - provider: releases
     api_key: $GITHUB_API_KEY
-    file_glob: true
-    file: "/home/travis/build/sanyarnd/applocker/target/app-locker*.jar"
+    file:
+      - /home/travis/build/sanyarnd/applocker/target/app-locker-$TRAVIS_TAG.jar
+      - /home/travis/build/sanyarnd/applocker/target/app-locker-$TRAVIS_TAG-javadoc.jar
+      - /home/travis/build/sanyarnd/applocker/target/app-locker-$TRAVIS_TAG-sources.jar
     skip_cleanup: true
     on:
       tags: true
   - provider: script
-    script: "cp .travis.settings.xml $HOME/.m2/settings.xml && mvn deploy"
+    script: "cp .m2/settings.xml $HOME/.m2/settings.xml && mvn deploy"
     skip_cleanup: true
     on:
       tags: true

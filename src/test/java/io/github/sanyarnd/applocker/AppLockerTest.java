@@ -32,7 +32,6 @@ import io.github.sanyarnd.applocker.exceptions.LockingBusyException;
 import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
 import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
 import io.github.sanyarnd.applocker.filesystem.LockNameProvider;
-import io.github.sanyarnd.applocker.messaging.MessageHandler;
 
 public class AppLockerTest {
     private static <T extends Serializable> MessageHandler<T, T> createEchoHandler() {

@@ -15,7 +15,7 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 
-package io.github.sanyarnd.applocker.messaging;
+package io.github.sanyarnd.applocker;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -39,7 +39,7 @@ import io.github.sanyarnd.applocker.exceptions.LockingMessageServerException;
  *
  * @author Alexander Biryukov
  */
-public final class Server<I extends Serializable, O extends Serializable> {
+final class Server<I extends Serializable, O extends Serializable> {
     @Nonnull
     private final MessageHandler<I, O> handler;
     @Nonnull
@@ -110,7 +110,7 @@ public final class Server<I extends Serializable, O extends Serializable> {
 
     /**
      * Blocking version of {@link #getPort()}, ignores {@link LockingCommunicationException}
-     * and tries to retrieve the port number.<br/>
+     * and tries to retrieve the port number.<br>
      * This method is useful for situations where you need to retrieve the port number right after the start
      *
      * @return port number

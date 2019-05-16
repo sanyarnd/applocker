@@ -15,7 +15,7 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 
-package io.github.sanyarnd.applocker.messaging;
+package io.github.sanyarnd.applocker;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -33,7 +33,7 @@ import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
  *
  * @author Alexander Biryukov
  */
-public final class Client<I extends Serializable, O extends Serializable> {
+final class Client<I extends Serializable, O extends Serializable> {
     private final int port;
 
     public Client(int port) {

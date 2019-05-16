@@ -17,7 +17,6 @@
 
 package io.github.sanyarnd.applocker;
 
-import java.io.EOFException;
 import java.io.Serializable;
 import java.util.ArrayList;
 
@@ -28,9 +27,6 @@ import org.junit.jupiter.api.Test;
 
 import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
 import io.github.sanyarnd.applocker.exceptions.LockingMessageServerException;
-import io.github.sanyarnd.applocker.messaging.Client;
-import io.github.sanyarnd.applocker.messaging.MessageHandler;
-import io.github.sanyarnd.applocker.messaging.Server;
 
 
 public class MessagingTest {

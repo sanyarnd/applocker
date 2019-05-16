@@ -39,15 +39,12 @@ import io.github.sanyarnd.applocker.exceptions.LockingException;
 import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
 import io.github.sanyarnd.applocker.filesystem.LockNameProvider;
 import io.github.sanyarnd.applocker.filesystem.Sha1Provider;
-import io.github.sanyarnd.applocker.messaging.Client;
-import io.github.sanyarnd.applocker.messaging.MessageHandler;
-import io.github.sanyarnd.applocker.messaging.Server;
 
 /**
  * Locker class, provides methods for locking mechanism and
  * encapsulates socket-based message server for IPC.
  * <p>
- * You don't need call {@link #unlock()} directly, method will be called once JVM is terminated.<br/>
+ * You don't need call {@link #unlock()} directly, method will be called once JVM is terminated.<br>
  * You're free to call {@link #unlock()} any time if it is required by your application logic.
  *
  * @author Alexander Biryukov
@@ -157,7 +154,7 @@ public final class AppLocker {
     }
 
     /**
-     * Unlock the lock.<br/>
+     * Unlock the lock.<br>
      * Does nothing if lock is not locked
      */
     public void unlock() {
@@ -246,7 +243,7 @@ public final class AppLocker {
         public Builder(@Nonnull String id) { this.id = id; }
 
         /**
-         * Sets the path where the lock file will be stored<br/>
+         * Sets the path where the lock file will be stored<br>
          * Default value is "." (relative)
          *
          * @param path store path
@@ -258,8 +255,8 @@ public final class AppLocker {
         }
 
         /**
-         * Sets the message handler.<br/>
-         * If not set, AppLocker won't support communication features <br/>
+         * Sets the message handler.<br>
+         * If not set, AppLocker won't support communication features <br>
          * Default value is null
          *
          * @param handler message handler
@@ -271,8 +268,8 @@ public final class AppLocker {
         }
 
         /**
-         * Sets the name provider.<br/>
-         * Provider encodes lock id to filesystem-friendly entry<br/>
+         * Sets the name provider.<br>
+         * Provider encodes lock id to filesystem-friendly entry<br>
          * Default value is {@link Sha1Provider}
          *
          * @param provider name provider
@@ -284,8 +281,8 @@ public final class AppLocker {
         }
 
         /**
-         * Successful locking callback.<br/>
-         * By default does nothing
+         * Successful locking callback.<br>
+         * Does nothing if not set
          *
          * @param callback the function to call after successful locking
          * @return builder
@@ -296,8 +293,8 @@ public final class AppLocker {
         }
 
         /**
-         * Lock is already taken callback.<br/>
-         * By default does nothing (null)
+         * Lock is already taken callback.<br>
+         * Default value is null
          *
          * @param message message for lock holder
          * @param handler answer processing function
@@ -313,7 +310,23 @@ public final class AppLocker {
         }
 
         /**
-         * Unable to lock for unknown reasons callback.<br/>
+         * Lock is already taken callback.<br>
+         * Default value is null
+         *
+         * @param message message for lock holder
+         * @param handler callback which ignores the answer
+         * @return builder
+         */
+        public Builder busy(@Nonnull Serializable message, @Nonnull Runnable handler) {
+            busyHandler = (appLocker, ex) -> {
+                appLocker.sendMessage(message);
+                handler.run();
+            };
+            return this;
+        }
+
+        /**
+         * Unable to lock for unknown reasons callback.<br>
          * By default re-throws the exception
          *
          * @param handler error processing function

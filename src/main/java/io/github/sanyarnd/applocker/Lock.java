@@ -35,7 +35,7 @@ import io.github.sanyarnd.applocker.exceptions.LockingBusyException;
 import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
 
 /**
- * File-channel based lock <br/>
+ * File-channel based lock <br>
  * Lock is not not thread safe, so you cna easily break
  *
  * @author Alexander Biryukov
@@ -61,7 +61,7 @@ final class Lock implements AutoCloseable {
     }
 
     /**
-     * Tries to acquire the lock and ignores any {@link LockingBusyException} during the process.<br/>
+     * Tries to acquire the lock and ignores any {@link LockingBusyException} during the process.<br>
      * Be aware that it's easy to get a spin lock if the other Lock won't call {@link #unlock()}, that's
      * why loopLock is used only for global lock acquiring.
      */
