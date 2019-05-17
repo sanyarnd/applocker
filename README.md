@@ -27,9 +27,9 @@ I encourage you to try smart (fluent) builder:
 compact, easy to read and provides expecting functionality right off the bat:
 ```java
 AppLocker locker = AppLocker.create("lockID")
-    .onSuccess(this::test)              // success callback (default: NULL)
+    .onSuccess(this::logLocking)        // success callback (default: NULL)
     .onBusy("close", this::logAndExit)  // send message to the instance which currently owns the lock and invoke callback (default: NULL)
-    .onFail(this::logErrorAndExit)      // if a serious error happened during the lock (default: re-throw)
+    .onFail(this::logErrorAndExit)      // serious error happened during the lock (default: re-throw exception)
     .build();
 locker.lock();
 }
@@ -79,5 +79,5 @@ For more information visit [bintray](https://bintray.com/sanya-rnd/maven-project
 Standalone jars are available on [releases](https://github.com/sanyarnd/applocker/releases) page.
 
 
-#Changelog
+# Changelog
 To see what has changed in recent versions of AppLocker, see the [CHANGELOG.md](CHANGELOG.md)
