@@ -1,3 +1,9 @@
+# 1.0.3
+- API changes
+- Improved javadoc
+- Internal re-organization
+- Missing maven wrapper executable for *nix
+
 # 1.0.2
 - `AppLocker.Builder`'s `busy` method now supports `Runnable` callback
 - javadoc and sources are now distributed along with the package 

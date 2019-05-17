@@ -6,8 +6,8 @@
 
     <groupId>io.github.sanyarnd</groupId>
     <artifactId>app-locker</artifactId>
-    <version>1.0.2</version>
-    <url>https://github.com/sanyarnd/applocker</url>
+    <version>1.0.3</version>
+    <url>https://sanyarnd.github.io/applocker/</url>
     <packaging>jar</packaging>
 
     <name>Application Locker</name>

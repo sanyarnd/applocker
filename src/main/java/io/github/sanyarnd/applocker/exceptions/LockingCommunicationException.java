@@ -20,7 +20,7 @@ package io.github.sanyarnd.applocker.exceptions;
 import javax.annotation.Nonnull;
 
 /**
- * Exception indicates that there is a IPC issue
+ * Exception indicates that there is an issue with communication between current instance and lock holder
  *
  * @author Alexander Biryukov
  */

@@ -20,7 +20,7 @@ package io.github.sanyarnd.applocker.exceptions;
 import javax.annotation.Nonnull;
 
 /**
- * Indicates that there is a failure (most probably I/O) while acquiring the lock
+ * Exception indicates that there was a failure (most probably I/O) during acquiring the lock
  *
  * @author Alexander Biryukov
  */

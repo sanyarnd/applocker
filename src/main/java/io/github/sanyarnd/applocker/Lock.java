@@ -35,8 +35,7 @@ import io.github.sanyarnd.applocker.exceptions.LockingBusyException;
 import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
 
 /**
- * File-channel based lock <br>
- * Lock is not not thread safe, so you cna easily break
+ * File-channel based lock
  *
  * @author Alexander Biryukov
  */
@@ -47,7 +46,7 @@ final class Lock implements AutoCloseable {
     @Nullable
     private FileChannel channel;
     @Nullable
-    private FileLock lock;
+    private FileLock fileLock;
     @SuppressWarnings("unused")
     private boolean locked; // for lombok
 
@@ -64,6 +63,8 @@ final class Lock implements AutoCloseable {
      * Tries to acquire the lock and ignores any {@link LockingBusyException} during the process.<br>
      * Be aware that it's easy to get a spin lock if the other Lock won't call {@link #unlock()}, that's
      * why loopLock is used only for global lock acquiring.
+     *
+     * @throws LockingFailedException if any error occurred during the locking process (I/O exception)
      */
     void loopLock() {
         while (true) {
@@ -78,7 +79,7 @@ final class Lock implements AutoCloseable {
     }
 
     /**
-     * Attempt to lock {@link #file}. Function either succeed or throws exception
+     * Attempt to lock {@link #file}
      *
      * @throws LockingFailedException if any error occurred during the locking process (I/O exception)
      * @throws LockingBusyException   if lock is already taken by someone
@@ -96,8 +97,8 @@ final class Lock implements AutoCloseable {
             channel = FileChannel.open(file, StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
             // we need to close channel in case we are unable to obtain FileLock
             try {
-                lock = channel.tryLock();
-                if (lock == null) {
+                fileLock = channel.tryLock();
+                if (fileLock == null) {
                     throw new OverlappingFileLockException();
                 }
             } catch (OverlappingFileLockException ex) {
@@ -117,10 +118,10 @@ final class Lock implements AutoCloseable {
         // these calls cannot fail fail under normal circumstances
         // can't really imagine the case when it'll be left in half-valid state
         try {
-            if (lock != null) {
-                lock.release();
+            if (fileLock != null) {
+                fileLock.release();
             }
-            lock = null;
+            fileLock = null;
 
             if (channel != null) {
                 channel.close();
@@ -133,6 +134,6 @@ final class Lock implements AutoCloseable {
     }
 
     boolean isLocked() {
-        return channel != null && lock != null && channel.isOpen() && lock.isValid();
+        return channel != null && fileLock != null && channel.isOpen() && fileLock.isValid();
     }
 }

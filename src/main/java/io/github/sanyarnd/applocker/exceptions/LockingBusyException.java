@@ -20,7 +20,7 @@ package io.github.sanyarnd.applocker.exceptions;
 import javax.annotation.Nonnull;
 
 /**
- * Exception indicates that the resource lock is already acquired
+ * Exception indicates that the lock is already acquired
  *
  * @author Alexander Biryukov
  */

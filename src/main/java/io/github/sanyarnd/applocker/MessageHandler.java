@@ -21,6 +21,13 @@ import java.io.Serializable;
 
 import javax.annotation.Nonnull;
 
+/**
+ * Interface for the function, which runs on the server side
+ * and handles all incoming messages
+ *
+ * @param <I> message type
+ * @param <O> answer type
+ */
 @FunctionalInterface
 public interface MessageHandler<I extends Serializable, O extends Serializable> {
     /**

@@ -20,7 +20,7 @@ package io.github.sanyarnd.applocker.exceptions;
 import javax.annotation.Nonnull;
 
 /**
- * Base lock exception class
+ * Superclass of all locking exceptions
  *
  * @author Alexander Biryukov
  */

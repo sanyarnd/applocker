@@ -15,17 +15,17 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 
-package io.github.sanyarnd.applocker.filesystem;
+package io.github.sanyarnd.applocker;
 
 import javax.annotation.Nonnull;
 
 /**
- * Provides the safe way to encode possible application id's
- * such that they can be stored on filesystem without exceptions (invalid characters)
+ * Provides the safe way to encode application id such that it can be stored
+ * on filesystem without exceptions: invalid characters, too long etc
  *
  * @author Alexander Biryukov
  */
-public interface LockNameProvider {
+public interface LockIdEncoder {
     @Nonnull
-    String encrypt(@Nonnull String string);
+    String encode(@Nonnull String string);
 }

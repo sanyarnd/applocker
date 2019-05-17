@@ -51,7 +51,7 @@ final class Server<I extends Serializable, O extends Serializable> {
     @Nonnull
     private Thread shutdownHook;
 
-    public Server(@Nonnull MessageHandler<I, O> handler) {
+    Server(@Nonnull MessageHandler<I, O> handler) {
         this.handler = handler;
         runtime = Runtime.getRuntime();
 
@@ -59,7 +59,7 @@ final class Server<I extends Serializable, O extends Serializable> {
     }
 
 
-    public void start() {
+    void start() {
         if (threadHandle != null) {
             throw new LockingCommunicationException("The server is already running");
         }
@@ -75,7 +75,7 @@ final class Server<I extends Serializable, O extends Serializable> {
         runtime.addShutdownHook(shutdownHook);
     }
 
-    public void stop() {
+    void stop() {
         stop(false);
     }
 
@@ -98,7 +98,7 @@ final class Server<I extends Serializable, O extends Serializable> {
      * @throws LockingCommunicationException if message server is not running
      * @throws LockingMessageServerException if server is in exception state (also possible race with {@link #stop()} call)
      */
-    public int getPort() {
+    int getPort() {
         if (threadHandle != null && threadHandle.isDone()) {
             throw new LockingMessageServerException("Server is in exception state for some reason");
         }
@@ -116,12 +116,12 @@ final class Server<I extends Serializable, O extends Serializable> {
      * @return port number
      * @throws LockingMessageServerException if server is in exception state (also possible race with {@link #stop()} call)
      */
-    public int getPortBlocking() {
+    int getPortBlocking() {
         while (true) {
             try {
                 return getPort();
             } catch (LockingCommunicationException ex) {
-                // we need to block till socket is opened somehow
+                // ignore exception, wait until socket is open
             }
         }
     }
@@ -131,7 +131,7 @@ final class Server<I extends Serializable, O extends Serializable> {
 
         @Override
         public void run() {
-            // use socket channel, because it'll throw ClosedByInterruptException
+            // use socket channel, because it'll throw ClosedByInterruptException on interrupt
             try (ServerSocketChannel socket = ServerSocketChannel.open()) {
                 socket.socket().setReuseAddress(true);
                 socket.socket().bind(new InetSocketAddress(0));
@@ -148,7 +148,7 @@ final class Server<I extends Serializable, O extends Serializable> {
                             O answer = handler.handleMessage(message);
                             oos.writeObject(answer);
                         } catch (IOException | ClassNotFoundException ignored) {
-                            // there's a failure during de-serialization,
+                            // there's a failure during de-serialization or handling the message
                             // but we don't want to terminate the server
                         }
                     }

@@ -120,6 +120,7 @@ public class MessagingTest {
         final Client<String, String> client = new Client<>(server.getPortBlocking());
         Assertions.assertThrows(LockingCommunicationException.class, () -> client.send("test"));
         Assertions.assertThrows(LockingMessageServerException.class, server::getPortBlocking);
+        Assertions.assertThrows(LockingCommunicationException.class, () -> client.send("test"));
     }
 
     @Test

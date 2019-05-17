@@ -27,8 +27,8 @@ public class AppLockerHandlersTest {
 
     @Test
     public void busy_handler_suppress_exception() {
-        final AppLocker l1 = AppLocker.create("sameId").busy("asd", (ans) -> {}).setMessageHandler(e -> e).build();
-        final AppLocker l2 = AppLocker.create("sameId").busy("asd", (ans) -> {}).setMessageHandler(e -> e).build();
+        final AppLocker l1 = AppLocker.create("sameId").onBusy("asd", (ans) -> {}).setMessageHandler(e -> e).build();
+        final AppLocker l2 = AppLocker.create("sameId").onBusy("asd", (ans) -> {}).setMessageHandler(e -> e).build();
 
         l1.lock();
         l2.lock();
@@ -42,8 +42,8 @@ public class AppLockerHandlersTest {
 
     @Test
     public void busy_handler_runnable_suppress_exception() {
-        final AppLocker l1 = AppLocker.create("sameId").busy("asd", () -> {}).setMessageHandler(e -> e).build();
-        final AppLocker l2 = AppLocker.create("sameId").busy("asd", () -> {}).setMessageHandler(e -> e).build();
+        final AppLocker l1 = AppLocker.create("sameId").onBusy("asd", () -> {}).setMessageHandler(e -> e).build();
+        final AppLocker l2 = AppLocker.create("sameId").onBusy("asd", () -> {}).setMessageHandler(e -> e).build();
 
         l1.lock();
         l2.lock();
@@ -58,8 +58,8 @@ public class AppLockerHandlersTest {
     @Test
     public void fail_handler_suppress_exception() {
         Integer[] ret = new Integer[]{0};
-        final AppLocker l1 = AppLocker.create("sameId").failed((ex) -> {}).build();
-        final AppLocker l2 = AppLocker.create("sameId").failed((ex) -> ret[0] = -1).build();
+        final AppLocker l1 = AppLocker.create("sameId").onFail((ex) -> {}).build();
+        final AppLocker l2 = AppLocker.create("sameId").onFail((ex) -> ret[0] = -1).build();
 
         l1.lock();
         l2.lock();
@@ -76,8 +76,8 @@ public class AppLockerHandlersTest {
     @Test
     public void busy_handler_supersedes_fail_handler_when_suppressing_exception() {
         Integer[] ret = new Integer[]{0};
-        final AppLocker l1 = AppLocker.create("sameId").failed((ex) -> {}).busy("asd", (ans) -> {}).setMessageHandler(e -> e).build();
-        final AppLocker l2 = AppLocker.create("sameId").failed((ex) -> ret[0] = -1).busy("asd", (ans) -> ret[0] = 1).setMessageHandler(e -> e).build();
+        final AppLocker l1 = AppLocker.create("sameId").onFail((ex) -> {}).onBusy("asd", (ans) -> {}).setMessageHandler(e -> e).build();
+        final AppLocker l2 = AppLocker.create("sameId").onFail((ex) -> ret[0] = -1).onBusy("asd", (ans) -> ret[0] = 1).setMessageHandler(e -> e).build();
 
         l1.lock();
         l2.lock();
@@ -95,10 +95,10 @@ public class AppLockerHandlersTest {
     @Test
     public void fail_handler_supersedes_fail_handler_when_busy_throws_exception() {
         Integer[] ret = new Integer[]{0};
-        final AppLocker l1 = AppLocker.create("sameId").failed((ex) -> {}).busy("asd", (ans) -> {}).setMessageHandler(e -> {
+        final AppLocker l1 = AppLocker.create("sameId").onFail((ex) -> {}).onBusy("asd", (ans) -> {}).setMessageHandler(e -> {
             throw new IllegalArgumentException();
         }).build();
-        final AppLocker l2 = AppLocker.create("sameId").failed((ex) -> ret[0] = -1).busy("asd", (ans) -> ret[0] = 1).setMessageHandler(e -> e).build();
+        final AppLocker l2 = AppLocker.create("sameId").onFail((ex) -> ret[0] = -1).onBusy("asd", (ans) -> ret[0] = 1).setMessageHandler(e -> e).build();
 
         l1.lock();
         l2.lock();
@@ -115,7 +115,7 @@ public class AppLockerHandlersTest {
     @Test
     public void lock_acquired_is_called() {
         Integer[] ret = new Integer[]{0};
-        final AppLocker l1 = AppLocker.create("sameId").acquired(() -> ret[0] = 1).build();
+        final AppLocker l1 = AppLocker.create("sameId").onSuccess(() -> ret[0] = 1).build();
 
         l1.lock();
         Assertions.assertTrue(l1.isLocked());

@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.Socket;
 
@@ -36,12 +37,12 @@ import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
 final class Client<I extends Serializable, O extends Serializable> {
     private final int port;
 
-    public Client(int port) {
+    Client(int port) {
         this.port = port;
     }
 
     @Nonnull
-    public O send(@Nonnull I message) {
+    O send(@Nonnull I message) {
         try (Socket socket = new Socket(InetAddress.getLocalHost(), port);
              ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
              ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream())) {
@@ -52,7 +53,11 @@ final class Client<I extends Serializable, O extends Serializable> {
             O ret = (O) input.readObject();
 
             return ret;
-        } catch (IOException | ClassNotFoundException ex) {
+        } catch (ClassNotFoundException ex) {
+            throw new LockingCommunicationException("Unable to deserialize the message");
+        } catch (ConnectException ex) {
+            throw new LockingCommunicationException("Unable to connect to the message server");
+        } catch (IOException ex) {
             throw new LockingCommunicationException(ex);
         }
     }

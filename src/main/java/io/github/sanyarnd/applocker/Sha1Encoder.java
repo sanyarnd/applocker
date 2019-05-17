@@ -15,7 +15,7 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 
-package io.github.sanyarnd.applocker.filesystem;
+package io.github.sanyarnd.applocker;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -25,14 +25,14 @@ import java.util.Formatter;
 import javax.annotation.Nonnull;
 
 /**
- * SHA-1 string hashing
+ * SHA-1 string encoder
  *
  * @author Alexander Biryukov
  */
-public final class Sha1Provider implements LockNameProvider {
+final class Sha1Encoder implements LockIdEncoder {
     @Nonnull
     @Override
-    public String encrypt(@Nonnull String string) {
+    public String encode(@Nonnull String string) {
         try {
             MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
             sha1.reset();

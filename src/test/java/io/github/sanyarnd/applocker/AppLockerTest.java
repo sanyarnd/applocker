@@ -31,7 +31,6 @@ import org.junit.jupiter.api.condition.OS;
 import io.github.sanyarnd.applocker.exceptions.LockingBusyException;
 import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
 import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
-import io.github.sanyarnd.applocker.filesystem.LockNameProvider;
 
 public class AppLockerTest {
     private static <T extends Serializable> MessageHandler<T, T> createEchoHandler() {
@@ -110,12 +109,12 @@ public class AppLockerTest {
     @Test
     public void unlock_before_lock_doesnt_throw() {
         final AppLocker l1 = AppLocker.create("sameId").build();
-        l1.unlock();
+        Assertions.assertDoesNotThrow(l1::unlock);
     }
 
     @Test
     public void communication_to_self() {
-        final AppLocker l1 = AppLocker.create("sameId").busy("", (ans) -> {}).setMessageHandler(createEchoHandler()).build();
+        final AppLocker l1 = AppLocker.create("sameId").onBusy("", (ans) -> {}).setMessageHandler(createEchoHandler()).build();
 
         l1.lock();
 
@@ -128,7 +127,7 @@ public class AppLockerTest {
 
     @Test
     public void communication_between_two_locks() {
-        final AppLocker l1 = AppLocker.create("sameId").busy("", (ans) -> {}).setMessageHandler(createEchoHandler()).build();
+        final AppLocker l1 = AppLocker.create("sameId").onBusy("", (ans) -> {}).setMessageHandler(createEchoHandler()).build();
         final AppLocker l2 = AppLocker.create("sameId").build();
 
         l1.lock();
@@ -143,7 +142,7 @@ public class AppLockerTest {
 
     @Test
     public void communication_doesnt_work_without_lock() {
-        final AppLocker l1 = AppLocker.create("sameId").busy("", (ans) -> {}).setMessageHandler(createEchoHandler()).build();
+        final AppLocker l1 = AppLocker.create("sameId").onBusy("", (ans) -> {}).setMessageHandler(createEchoHandler()).build();
         Assertions.assertThrows(LockingCommunicationException.class, () -> l1.sendMessage("self"));
 
         // cleanup
@@ -152,14 +151,14 @@ public class AppLockerTest {
 
     @Test
     public void communication_after_reacquiring_the_lock() {
-        final AppLocker l1 = AppLocker.create("sameId").busy("", (ans) -> {}).setMessageHandler(new MessageHandler<String, String>() {
+        final AppLocker l1 = AppLocker.create("sameId").onBusy("", (ans) -> {}).setMessageHandler(new MessageHandler<String, String>() {
             @Nonnull
             @Override
             public String handleMessage(@Nonnull String message) {
                 return "1";
             }
         }).build();
-        final AppLocker l2 = AppLocker.create("sameId").busy("", (ans) -> {}).setMessageHandler(new MessageHandler<String, String>() {
+        final AppLocker l2 = AppLocker.create("sameId").onBusy("", (ans) -> {}).setMessageHandler(new MessageHandler<String, String>() {
             @Nonnull
             @Override
             public String handleMessage(@Nonnull String message) {
@@ -184,15 +183,15 @@ public class AppLockerTest {
 
     @Test
     public void custom_name_provider() {
-        LockNameProvider doubleName = new LockNameProvider() {
+        LockIdEncoder doubleName = new LockIdEncoder() {
             @Nonnull
             @Override
-            public String encrypt(@Nonnull String string) {
+            public String encode(@Nonnull String string) {
                 return string + string;
             }
         };
-        final AppLocker l1 = AppLocker.create("sameId").setNameProvider(doubleName).build();
-        l1.lock();
+        final AppLocker l1 = AppLocker.create("sameId").setIdEncoder(doubleName).build();
+        Assertions.assertDoesNotThrow(l1::lock);
 
         // cleanup
         l1.unlock();
@@ -201,7 +200,7 @@ public class AppLockerTest {
     @Test
     public void to_string() {
         AppLocker l1 = AppLocker.create("sameId").build();
-        Assertions.assertNotEquals(l1.toString(), null);
+        Assertions.assertDoesNotThrow(l1::toString);
     }
 
     @Test

@@ -20,7 +20,7 @@ package io.github.sanyarnd.applocker.exceptions;
 import javax.annotation.Nonnull;
 
 /**
- * Indicates that there is an issue with message server
+ * Exception indicates that there is an issue with message server
  *
  * @author Alexander Biryukov
  */
