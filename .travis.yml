@@ -28,8 +28,6 @@ install:
 after_success:
   - mvn org.jacoco:jacoco-maven-plugin:report
   - mvn pvsstudio:pvsCredentials pvsstudio:pvsAnalyze
-  - mvn spotbugs:spotbugs
-  - mvn pmd:pmd
   - mvn sonar:sonar -DskipTests=true -Dmaven.install.skip=true
 
 # there is no deploy without tag (yet?),

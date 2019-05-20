@@ -1,3 +1,8 @@
+# 1.0.5
+- `Runnable` overload for `onFail` method
+- Removed Spotbugs amd PMD
+- pom.xml changes
+
 # 1.0.4
 - Nonnull by default for all API
 - Spotbugs and PMD integration

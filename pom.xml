@@ -6,7 +6,7 @@
 
     <groupId>io.github.sanyarnd</groupId>
     <artifactId>app-locker</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
     <url>https://sanyarnd.github.io/applocker/</url>
     <packaging>jar</packaging>
 
@@ -39,8 +39,6 @@
 
         <sonar.coverage.jacoco.xmlReportPaths>target/sonar-reports/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
         <sonar.pvs-studio.reportPath>target/sonar-reports/pvs-output.xml</sonar.pvs-studio.reportPath>
-        <sonar.java.spotbugs.reportPaths>target/sonar-reports/spotbugsXml.xml</sonar.java.spotbugs.reportPaths>
-        <sonar.java.pmd.reportPaths>target/sonar-reports/pmd.xml</sonar.java.pmd.reportPaths>
 
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-clean-plugin.version>3.1.0</maven-clean-plugin.version>
@@ -60,11 +58,8 @@
         <pvsstudio-maven-plugin.version>7.02.32034</pvsstudio-maven-plugin.version>
         <jacoco-maven-plugin.version>0.8.4</jacoco-maven-plugin.version>
         <sonar-maven-plugin.version>3.6.0.1398</sonar-maven-plugin.version>
-        <maven-pmd-plugin.version>3.12.0</maven-pmd-plugin.version>
         <maven-checkstyle-plugin.version>3.1.0</maven-checkstyle-plugin.version>
         <checkstyle.version>8.20</checkstyle.version>
-        <spotbugs-maven-plugin.version>3.1.11</spotbugs-maven-plugin.version>
-        <spotbugs-findsec-maven-plugin.version>1.9.0</spotbugs-findsec-maven-plugin.version>
 
         <lombok.version>1.18.8</lombok.version>
         <jsr305.version>3.0.2</jsr305.version>
@@ -126,7 +121,7 @@
                             <goal>check</goal>
                         </goals>
                         <configuration>
-                            <configLocation>checkstyle/checks.xml</configLocation>
+                            <configLocation>checkstyle/checkstyle.xml</configLocation>
                         </configuration>
                     </execution>
                 </executions>
@@ -148,30 +143,6 @@
                 <groupId>org.sonarsource.scanner.maven</groupId>
                 <artifactId>sonar-maven-plugin</artifactId>
                 <version>${sonar-maven-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>${spotbugs-maven-plugin.version}</version>
-                <configuration>
-                    <spotbugsXmlOutputDirectory>target/sonar-reports</spotbugsXmlOutputDirectory>
-                    <plugins>
-                        <plugin>
-                            <groupId>com.h3xstream.findsecbugs</groupId>
-                            <artifactId>findsecbugs-plugin</artifactId>
-                            <version>${spotbugs-findsec-maven-plugin.version}</version>
-                        </plugin>
-                    </plugins>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>${maven-pmd-plugin.version}</version>
-                <configuration>
-                    <targetDirectory>target/sonar-reports</targetDirectory>
-                    <format>xml</format>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>com.pvsstudio</groupId>

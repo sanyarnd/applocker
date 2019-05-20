@@ -308,7 +308,7 @@ public final class AppLocker {
          * @return builder
          */
         public Builder onBusy(final Serializable message, final Runnable handler) {
-            busyHandler = (appLocker, ex) -> {
+            busyHandler = (appLocker, ignoredException) -> {
                 appLocker.sendMessage(message);
                 handler.run();
             };
@@ -324,6 +324,18 @@ public final class AppLocker {
          */
         public Builder onFail(final Consumer<LockingException> handler) {
             failedHandler = handler;
+            return this;
+        }
+
+        /**
+         * Defines an action in situations when locking is impossible.<br>
+         * Default value is identity function (re-throws exception).
+         *
+         * @param handler error processing function
+         * @return builder
+         */
+        public Builder onFail(final Runnable handler) {
+            failedHandler = ignoredException -> handler.run();
             return this;
         }
 
