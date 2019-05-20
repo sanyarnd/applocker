@@ -1,0 +1,10 @@
+theme: jekyll-theme-slate
+
+title: AppLocker
+description: Provides file-based locking mechanism with inter-process communication support
+
+show_downloads: true
+
+github:
+  tar_url: https://github.com/sanyarnd/applocker/releases
+  zip_url: https://bintray.com/sanya-rnd/maven-projects/applocker

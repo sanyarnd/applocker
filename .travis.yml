@@ -32,6 +32,11 @@ after_success:
   - mvn pmd:pmd
   - mvn sonar:sonar -DskipTests=true
 
+before_deploy:
+  - cp -r target/apidocs gh-pages
+  - cp README.md gh-pages/README.md
+  - cp CHANGELOG.md gh-pages/CHANGELOG.md
+
 deploy:
   - provider: releases
     api_key: $GITHUB_API_KEY
@@ -42,6 +47,12 @@ deploy:
     skip_cleanup: true
     on:
       tags: true
+  - provider: pages
+    github_token: $GITHUB_API_KEY
+    local_dir: gh-pages
+    skip_cleanup: true
+    on:
+      branch: master
   - provider: script
     script: "mvn --settings .m2/settings.xml deploy"
     skip_cleanup: true
