@@ -23,13 +23,13 @@ addons:
 before_install:
   - chmod +x mvnw
 install:
-  mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install org.jacoco:jacoco-maven-plugin:report -B -V
+  mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install -B -V
 
 after_success:
+  - mvn org.jacoco:jacoco-maven-plugin:report
   - mvn pvsstudio:pvsCredentials pvsstudio:pvsAnalyze
   - mvn spotbugs:spotbugs
   - mvn pmd:pmd
-  - mvn checkstyle:checkstyle
   - mvn sonar:sonar -DskipTests=true
 
 deploy:

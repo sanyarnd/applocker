@@ -28,36 +28,33 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
 import io.github.sanyarnd.applocker.exceptions.LockingMessageServerException;
 
 /**
- * Socket-based server
+ * Socket-based server.
  *
+ * @param <I> receive message type
+ * @param <O> response message type
  * @author Alexander Biryukov
  */
 final class Server<I extends Serializable, O extends Serializable> {
-    @Nonnull
-    private final MessageHandler<I, O> handler;
-    @Nonnull
+    private final MessageHandler<I, O> messageHandler;
     private final Runtime runtime;
     @Nullable
     private Future<?> threadHandle;
     @Nullable
     private ServerLoop runnable;
-    @Nonnull
     private Thread shutdownHook;
 
-    Server(@Nonnull MessageHandler<I, O> handler) {
-        this.handler = handler;
+    Server(final MessageHandler<I, O> handler) {
+        messageHandler = handler;
         runtime = Runtime.getRuntime();
 
         shutdownHook = new Thread(() -> stop(true), "Message server `%s` shutdownHook");
     }
-
 
     void start() {
         if (threadHandle != null) {
@@ -79,7 +76,7 @@ final class Server<I extends Serializable, O extends Serializable> {
         stop(false);
     }
 
-    private void stop(boolean internal) {
+    private void stop(final boolean internal) {
         if (!internal) {
             runtime.removeShutdownHook(shutdownHook);
         }
@@ -92,7 +89,7 @@ final class Server<I extends Serializable, O extends Serializable> {
     }
 
     /**
-     * Get server's socket port
+     * Get server's socket port.
      *
      * @return port
      * @throws LockingCommunicationException if message server is not running
@@ -145,7 +142,7 @@ final class Server<I extends Serializable, O extends Serializable> {
                         try {
                             @SuppressWarnings("unchecked")
                             I message = (I) ois.readObject();
-                            O answer = handler.handleMessage(message);
+                            O answer = messageHandler.handleMessage(message);
                             oos.writeObject(answer);
                         } catch (IOException | ClassNotFoundException ignored) {
                             // there's a failure during de-serialization or handling the message

@@ -26,7 +26,6 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import lombok.ToString;
@@ -35,13 +34,12 @@ import io.github.sanyarnd.applocker.exceptions.LockingBusyException;
 import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
 
 /**
- * File-channel based lock
+ * File-channel based lock.
  *
  * @author Alexander Biryukov
  */
 @ToString(of = {"file", "locked"})
 final class Lock implements AutoCloseable {
-    @Nonnull
     private final Path file;
     @Nullable
     private FileChannel channel;
@@ -50,8 +48,8 @@ final class Lock implements AutoCloseable {
     @SuppressWarnings("unused")
     private boolean locked; // for lombok
 
-    Lock(@Nonnull final Path file) {
-        this.file = file.toAbsolutePath();
+    Lock(final Path underlyingFile) {
+        file = underlyingFile.toAbsolutePath();
     }
 
     @Override
@@ -79,7 +77,7 @@ final class Lock implements AutoCloseable {
     }
 
     /**
-     * Attempt to lock {@link #file}
+     * Attempt to lock {@link #file}.
      *
      * @throws LockingFailedException if any error occurred during the locking process (I/O exception)
      * @throws LockingBusyException   if lock is already taken by someone
@@ -112,7 +110,7 @@ final class Lock implements AutoCloseable {
     }
 
     /**
-     * Unlock the lock
+     * Unlock the lock.
      */
     void unlock() {
         // these calls cannot fail fail under normal circumstances

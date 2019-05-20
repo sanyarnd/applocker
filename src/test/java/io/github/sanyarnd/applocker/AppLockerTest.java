@@ -21,8 +21,6 @@ import java.io.Serializable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import javax.annotation.Nonnull;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -34,13 +32,7 @@ import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
 
 public class AppLockerTest {
     private static <T extends Serializable> MessageHandler<T, T> createEchoHandler() {
-        return new MessageHandler<T, T>() {
-            @Nonnull
-            @Override
-            public T handleMessage(@Nonnull T message) {
-                return message;
-            }
-        };
+        return message -> message;
     }
 
     @Test
@@ -151,20 +143,8 @@ public class AppLockerTest {
 
     @Test
     public void communication_after_reacquiring_the_lock() {
-        final AppLocker l1 = AppLocker.create("sameId").onBusy("", (ans) -> {}).setMessageHandler(new MessageHandler<String, String>() {
-            @Nonnull
-            @Override
-            public String handleMessage(@Nonnull String message) {
-                return "1";
-            }
-        }).build();
-        final AppLocker l2 = AppLocker.create("sameId").onBusy("", (ans) -> {}).setMessageHandler(new MessageHandler<String, String>() {
-            @Nonnull
-            @Override
-            public String handleMessage(@Nonnull String message) {
-                return "2";
-            }
-        }).build();
+        final AppLocker l1 = AppLocker.create("sameId").onBusy("", (ans) -> {}).setMessageHandler((MessageHandler<String, String>) message -> "1").build();
+        final AppLocker l2 = AppLocker.create("sameId").onBusy("", (ans) -> {}).setMessageHandler((MessageHandler<String, String>) message -> "2").build();
 
         l1.lock();
         String messageToOther = l2.sendMessage("whatever");
@@ -183,13 +163,7 @@ public class AppLockerTest {
 
     @Test
     public void custom_name_provider() {
-        LockIdEncoder doubleName = new LockIdEncoder() {
-            @Nonnull
-            @Override
-            public String encode(@Nonnull String string) {
-                return string + string;
-            }
-        };
+        LockIdEncoder doubleName = string -> string + string;
         final AppLocker l1 = AppLocker.create("sameId").setIdEncoder(doubleName).build();
         Assertions.assertDoesNotThrow(l1::lock);
 

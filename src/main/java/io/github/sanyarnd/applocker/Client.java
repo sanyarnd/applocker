@@ -25,24 +25,23 @@ import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.Socket;
 
-import javax.annotation.Nonnull;
-
 import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
 
 /**
- * Client who can communicate with {@link Server} object
+ * Client who can communicate with {@link Server} object.
  *
+ * @param <I> send message type
+ * @param <O> receive message type
  * @author Alexander Biryukov
  */
 final class Client<I extends Serializable, O extends Serializable> {
     private final int port;
 
-    Client(int port) {
-        this.port = port;
+    Client(final int portNumber) {
+        port = portNumber;
     }
 
-    @Nonnull
-    O send(@Nonnull I message) {
+    O send(final I message) {
         try (Socket socket = new Socket(InetAddress.getLocalHost(), port);
              ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
              ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream())) {

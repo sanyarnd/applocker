@@ -15,15 +15,26 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 
-package io.github.sanyarnd.applocker.exceptions;
+package io.github.sanyarnd.applocker.annotations;
+
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
+import javax.annotation.Nonnull;
+import javax.annotation.meta.TypeQualifierDefault;
 
 /**
- * Exception indicates that there is an issue with message server.
+ * This annotation can be applied to a package, class or method to indicate that all
+ * class fields and method parameters and return values in that element are nonnull
+ * by default unless overridden.
  *
  * @author Alexander Biryukov
  */
-public class LockingMessageServerException extends LockingException {
-    public LockingMessageServerException(final String message) {
-        super(message);
-    }
+@Documented
+@Nonnull
+@TypeQualifierDefault({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface EverythingIsNonnullByDefault {
 }

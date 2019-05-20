@@ -17,19 +17,17 @@
 
 package io.github.sanyarnd.applocker.exceptions;
 
-import javax.annotation.Nonnull;
-
 /**
- * Exception indicates that there is an issue with communication between current instance and lock holder
+ * Exception indicates that there is an issue with communication between current instance and lock holder.
  *
  * @author Alexander Biryukov
  */
 public class LockingCommunicationException extends LockingException {
-    public LockingCommunicationException(@Nonnull Throwable ex) {
+    public LockingCommunicationException(final Throwable ex) {
         super(ex);
     }
 
-    public LockingCommunicationException(@Nonnull String message) {
+    public LockingCommunicationException(final String message) {
         super(message);
     }
 }

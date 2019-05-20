@@ -5,8 +5,14 @@
         "http://www.puppycrawl.com/dtds/suppressions_1_0.dtd">
 
 <suppressions>
+    <suppress checks="JavadocMethod"
+              files="."/>
     <suppress checks="JavadocVariable"
               files="."/>
     <suppress checks="LineLength"
               files="."/>
+    <suppress checks="LeftCurly"
+              files="."/>
+    <suppress checks="UnusedImports"
+              files="io.github.sanyarnd.applocker.AppLocker"/>
 </suppressions>

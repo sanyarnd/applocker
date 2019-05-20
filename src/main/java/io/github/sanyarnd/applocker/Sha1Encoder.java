@@ -22,17 +22,14 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Formatter;
 
-import javax.annotation.Nonnull;
-
 /**
- * SHA-1 string encoder
+ * SHA-1 string encoder.
  *
  * @author Alexander Biryukov
  */
 final class Sha1Encoder implements LockIdEncoder {
-    @Nonnull
     @Override
-    public String encode(@Nonnull String string) {
+    public String encode(final String string) {
         try {
             MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
             sha1.reset();

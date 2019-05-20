@@ -17,15 +17,12 @@
 
 package io.github.sanyarnd.applocker;
 
-import javax.annotation.Nonnull;
-
 /**
  * Provides the safe way to encode application id such that it can be stored
- * on filesystem without exceptions: invalid characters, too long etc
+ * on filesystem without exceptions: invalid characters, too long etc.
  *
  * @author Alexander Biryukov
  */
 public interface LockIdEncoder {
-    @Nonnull
-    String encode(@Nonnull String string);
+    String encode(String string);
 }

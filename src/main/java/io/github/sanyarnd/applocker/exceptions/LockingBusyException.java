@@ -17,15 +17,13 @@
 
 package io.github.sanyarnd.applocker.exceptions;
 
-import javax.annotation.Nonnull;
-
 /**
- * Exception indicates that the lock is already acquired
+ * Exception indicates that the lock is already acquired.
  *
  * @author Alexander Biryukov
  */
 public class LockingBusyException extends LockingException {
-    public LockingBusyException(@Nonnull Throwable ex) {
+    public LockingBusyException(final Throwable ex) {
         super(ex);
     }
 }

@@ -20,8 +20,6 @@ package io.github.sanyarnd.applocker;
 import java.io.Serializable;
 import java.util.ArrayList;
 
-import javax.annotation.Nonnull;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -31,13 +29,7 @@ import io.github.sanyarnd.applocker.exceptions.LockingMessageServerException;
 
 public class MessagingTest {
     private static <T extends Serializable> MessageHandler<T, T> createEchoHandler() {
-        return new MessageHandler<T, T>() {
-            @Nonnull
-            @Override
-            public T handleMessage(@Nonnull T message) {
-                return message;
-            }
-        };
+        return message -> message;
     }
 
     @Test
@@ -146,13 +138,7 @@ public class MessagingTest {
     public void client_throws_2_if_types_do_not_match() {
         // we need to directly create string overloaded version instead of using createEchoHandler
         // otherwise there won't be exception inside this handler when types won't match
-        MessageHandler<String, String> handler = new MessageHandler<String, String>() {
-            @Nonnull
-            @Override
-            public String handleMessage(@Nonnull String message) {
-                return message;
-            }
-        };
+        MessageHandler<String, String> handler = message -> message;
         Server<String, String> server = new Server<>(handler);
         server.start();
 

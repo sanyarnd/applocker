@@ -37,11 +37,11 @@
         <maven.compiler.target>${java-version}</maven.compiler.target>
         <maven.compiler.useIncrementalCompilation>true</maven.compiler.useIncrementalCompilation>
 
-        <sonar.coverage.jacoco.xmlReportPaths>target/reports-for-sonar/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
-        <sonar.pvs-studio.reportPath>target/reports-for-sonar/pvs-output.xml</sonar.pvs-studio.reportPath>
-        <sonar.java.spotbugs.reportPaths>target/reports-for-sonar/spotbugsXml.xml</sonar.java.spotbugs.reportPaths>
-        <sonar.java.pmd.reportPaths>target/reports-for-sonar/pmd.xml</sonar.java.pmd.reportPaths>
-        <sonar.java.checkstyle.reportPaths>target/reports-for-sonar/checkstyle-result.xml</sonar.java.checkstyle.reportPaths>
+        <sonar.coverage.jacoco.xmlReportPaths>target/sonar-reports/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.pvs-studio.reportPath>target/sonar-reports/pvs-output.xml</sonar.pvs-studio.reportPath>
+        <sonar.java.spotbugs.reportPaths>target/sonar-reports/spotbugsXml.xml</sonar.java.spotbugs.reportPaths>
+        <sonar.java.pmd.reportPaths>target/sonar-reports/pmd.xml</sonar.java.pmd.reportPaths>
+        <sonar.java.checkstyle.reportPaths>target/sonar-reports/checkstyle-result.xml</sonar.java.checkstyle.reportPaths>
 
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-clean-plugin.version>3.1.0</maven-clean-plugin.version>
@@ -62,7 +62,7 @@
         <jacoco-maven-plugin.version>0.8.4</jacoco-maven-plugin.version>
         <sonar-maven-plugin.version>3.6.0.1398</sonar-maven-plugin.version>
         <maven-pmd-plugin.version>3.12.0</maven-pmd-plugin.version>
-        <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
+        <maven-checkstyle-plugin.version>3.1.0</maven-checkstyle-plugin.version>
         <checkstyle.version>8.20</checkstyle.version>
         <spotbugs-maven-plugin.version>3.1.11</spotbugs-maven-plugin.version>
         <spotbugs-findsec-maven-plugin.version>1.9.0</spotbugs-findsec-maven-plugin.version>
@@ -109,7 +109,8 @@
                     </dependency>
                 </dependencies>
                 <configuration>
-                    <suppressionsLocation>checkstyle-suppressions.xml</suppressionsLocation>
+                    <outputFile>target/sonar-reports/checkstyle-result.xml</outputFile>
+                    <suppressionsLocation>checkstyle/suppressions.xml</suppressionsLocation>
                     <encoding>UTF-8</encoding>
                     <consoleOutput>true</consoleOutput>
                     <failsOnError>true</failsOnError>
@@ -131,7 +132,7 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco-maven-plugin.version}</version>
                 <configuration>
-                    <outputDirectory>target/reports-for-sonar</outputDirectory>
+                    <outputDirectory>target/sonar-reports</outputDirectory>
                 </configuration>
             </plugin>
 
@@ -146,7 +147,7 @@
                 <artifactId>spotbugs-maven-plugin</artifactId>
                 <version>${spotbugs-maven-plugin.version}</version>
                 <configuration>
-                    <spotbugsXmlOutputDirectory>target/reports-for-sonar</spotbugsXmlOutputDirectory>
+                    <spotbugsXmlOutputDirectory>target/sonar-reports</spotbugsXmlOutputDirectory>
                     <plugins>
                         <plugin>
                             <groupId>com.h3xstream.findsecbugs</groupId>
@@ -161,7 +162,7 @@
                 <artifactId>maven-pmd-plugin</artifactId>
                 <version>${maven-pmd-plugin.version}</version>
                 <configuration>
-                    <targetDirectory>target/reports-for-sonar</targetDirectory>
+                    <targetDirectory>target/sonar-reports</targetDirectory>
                     <format>xml</format>
                 </configuration>
             </plugin>
@@ -174,7 +175,7 @@
                     <serialNumber>FREE-FREE-FREE-FREE</serialNumber>
                     <analyzer>
                         <outputType>xml</outputType>
-                        <outputFile>target/reports-for-sonar/pvs-output.xml</outputFile>
+                        <outputFile>target/sonar-reports/pvs-output.xml</outputFile>
                     </analyzer>
                 </configuration>
             </plugin>

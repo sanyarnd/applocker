@@ -27,7 +27,6 @@ import java.nio.file.Paths;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import lombok.ToString;
@@ -36,6 +35,7 @@ import io.github.sanyarnd.applocker.exceptions.LockingBusyException;
 import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
 import io.github.sanyarnd.applocker.exceptions.LockingException;
 import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
+
 
 /**
  * Locker class, provides methods for locking mechanism and
@@ -46,65 +46,57 @@ import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
  *
  * @author Alexander Biryukov
  */
-@ToString(of = {"id", "appLock"})
+@ToString(of = {"lockId", "appLock"})
 public final class AppLocker {
-    @Nonnull
-    private final String id;
-    @Nonnull
+    private final String lockId;
     private final Lock gLock;
-    @Nonnull
     private final Lock appLock;
-    @Nonnull
     private final Path portFile;
-    @Nonnull
     private final Runtime runtime;
-    @Nonnull
     private final Thread shutdownHook;
     @Nullable
     private final Server<?, ?> server;
-    @Nonnull
     private final Runnable acquiredHandler;
     @Nullable
     private final BiConsumer<AppLocker, LockingBusyException> busyHandler;
-    @Nonnull
     private final Consumer<LockingException> failedHandler;
 
-    private AppLocker(@Nonnull final String id,
-                      @Nonnull final Path lockPath,
-                      @Nonnull final LockIdEncoder idEncoder,
-                      @Nullable final Server<?, ?> server,
-                      @Nonnull final Runnable acquiredHandler,
-                      @Nullable final BiConsumer<AppLocker, LockingBusyException> busyHandler,
-                      @Nonnull final Consumer<LockingException> failedHandler) {
-        this.id = id;
-        this.server = server;
-        this.acquiredHandler = acquiredHandler;
-        this.busyHandler = busyHandler;
-        this.failedHandler = failedHandler;
-        Path path = lockPath.toAbsolutePath();
+    private AppLocker(final String nameId,
+                      final Path lockPath,
+                      final LockIdEncoder idEncoder,
+                      @Nullable final Server<?, ?> messageServer,
+                      final Runnable onAcquire,
+                      @Nullable final BiConsumer<AppLocker, LockingBusyException> onBusy,
+                      final Consumer<LockingException> onFail) {
+        lockId = nameId;
+        server = messageServer;
+        acquiredHandler = onAcquire;
+        busyHandler = onBusy;
+        failedHandler = onFail;
+        final Path path = lockPath.toAbsolutePath();
 
         gLock = new Lock(path.resolve(String.format(".%s.lock", idEncoder.encode("Unique global lock"))));
 
-        final String encodedId = idEncoder.encode(id);
+        final String encodedId = idEncoder.encode(nameId);
         appLock = new Lock(path.resolve(String.format(".%s.lock", encodedId)));
         portFile = path.resolve(String.format(".%s_port.lock", encodedId));
 
         runtime = Runtime.getRuntime();
-        shutdownHook = new Thread(() -> unlock(true), String.format("AppLocker `%s` shutdownHook", id));
+        shutdownHook = new Thread(() -> unlock(true), String.format("AppLocker `%s` shutdownHook", nameId));
     }
 
     /**
-     * Create the AppLocker builder
+     * Create the AppLocker builder.
      *
      * @param id AppLocker unique ID
      * @return builder
      */
-    public static Builder create(@Nonnull String id) {
+    public static Builder create(final String id) {
         return new Builder(id);
     }
 
     /**
-     * Acquire the lock
+     * Acquire the lock.
      *
      * @throws LockingBusyException          if lock is already taken by someone
      * @throws LockingFailedException        if any error occurred during the locking process (I/O exception)
@@ -144,8 +136,8 @@ public final class AppLocker {
         }
     }
 
-    private void handleLockBusyException(LockingBusyException ex) {
-        // if not busy not null then prefer busy
+    private void handleLockBusyException(final LockingBusyException ex) {
+        // if busy != null then prefer busy
         if (busyHandler != null) {
             try {
                 busyHandler.accept(this, ex);
@@ -159,13 +151,13 @@ public final class AppLocker {
 
     /**
      * Unlock the lock.<br>
-     * Does nothing if lock is not locked
+     * Does nothing if lock is not locked.
      */
     public void unlock() {
         unlock(false);
     }
 
-    private void unlock(boolean internal) {
+    private void unlock(final boolean internal) {
         try {
             gLock.loopLock();
             if (!internal) {
@@ -194,7 +186,7 @@ public final class AppLocker {
     }
 
     /**
-     * Send message to AppLocker instance who's holding the lock (including itself)
+     * Send message to AppLocker instance who's holding the lock (including itself).
      *
      * @param message message
      * @param <I>     message type
@@ -202,8 +194,7 @@ public final class AppLocker {
      * @return the answer from AppLocker's message messageHandler
      * @throws LockingCommunicationException if there is an issue with communicating to other AppLocker instance
      */
-    @Nonnull
-    public <I extends Serializable, O extends Serializable> O sendMessage(@Nonnull I message) {
+    public <I extends Serializable, O extends Serializable> O sendMessage(final I message) {
         try {
             int port = getPortFromFile();
             Client<I, O> client = new Client<>(port);
@@ -215,8 +206,9 @@ public final class AppLocker {
         }
     }
 
-    private void writeAppLockPortToFile(@Nonnull Path portFile, int port) throws IOException {
-        Files.write(portFile, ByteBuffer.allocate(4).putInt(port).array());
+    private void writeAppLockPortToFile(final Path portFilePath, final int portNumber) throws IOException {
+        final int bytesInInt = 4;
+        Files.write(portFilePath, ByteBuffer.allocate(bytesInInt).putInt(portNumber).array());
     }
 
     private int getPortFromFile() throws IOException {
@@ -224,88 +216,83 @@ public final class AppLocker {
     }
 
     /**
-     * AppLocker builder
+     * AppLocker builder.
      *
      * @author Alexander Biryukov
      */
     public static final class Builder {
-        @Nonnull
         private final String id;
-        @Nonnull
         private Path path = Paths.get(".");
-        @Nonnull
         private LockIdEncoder encoder = new Sha1Encoder();
         @Nullable
         private MessageHandler<?, ?> messageHandler = null;
-        @Nonnull
-        private Runnable acquiredHandler = () -> {};
-        @Nonnull
+        private Runnable acquiredHandler = () -> { };
         private Consumer<LockingException> failedHandler = ex -> { throw ex; };
         @Nullable
         private BiConsumer<AppLocker, LockingBusyException> busyHandler = null;
 
-        public Builder(@Nonnull String id) { this.id = id; }
+        public Builder(final String lockId) { id = lockId; }
 
         /**
-         * Sets the path where the lock file will be stored<br>
+         * Sets the path where the lock file will be stored.<br>
          * Default value is "."
          *
-         * @param path store path
+         * @param storePath store path
          * @return builder
          */
-        public Builder setPath(@Nonnull Path path) {
-            this.path = path;
+        public Builder setPath(final Path storePath) {
+            path = storePath;
             return this;
         }
 
         /**
          * Sets the message handler.<br>
-         * If not set, AppLocker won't support communication features <br>
-         * Default value is null
+         * If not set, AppLocker won't support communication features.<br>
+         * Default value is null.
          *
          * @param handler message handler
          * @return builder
          */
-        public Builder setMessageHandler(@Nonnull MessageHandler<?, ?> handler) {
-            this.messageHandler = handler;
+        public Builder setMessageHandler(final MessageHandler<?, ?> handler) {
+            messageHandler = handler;
             return this;
         }
 
         /**
          * Sets the name encoder.<br>
-         * Encodes lock id to filesystem-friendly entry<br>
-         * Default value is "SHA-1" encoder
+         * Encodes lock lockId to filesystem-friendly entry.<br>
+         * Default value is "SHA-1" encoder.
          *
          * @param provider name encoder
          * @return builder
          */
-        public Builder setIdEncoder(@Nonnull LockIdEncoder provider) {
-            this.encoder = provider;
+        public Builder setIdEncoder(final LockIdEncoder provider) {
+            encoder = provider;
             return this;
         }
 
         /**
          * Defines a callback if locking was successful.<br>
-         * Default value is empty function
+         * Default value is empty function.
          *
          * @param callback the function to call after successful locking
          * @return builder
          */
-        public Builder onSuccess(@Nonnull Runnable callback) {
+        public Builder onSuccess(final Runnable callback) {
             acquiredHandler = callback;
             return this;
         }
 
         /**
          * Defines an action in situations when lock is already taken.<br>
-         * Default value is null
+         * Default value is null.
          *
          * @param message message for lock holder
          * @param handler answer processing function
          * @param <T>     answer type
          * @return builder
          */
-        public <T extends Serializable> Builder onBusy(@Nonnull Serializable message, @Nonnull Consumer<T> handler) {
+        public <T extends Serializable> Builder onBusy(final Serializable message, final Consumer<T> handler) {
             busyHandler = (appLocker, ex) -> {
                 T answer = appLocker.sendMessage(message);
                 handler.accept(answer);
@@ -315,13 +302,13 @@ public final class AppLocker {
 
         /**
          * Defines an action in situations when lock is already taken.<br>
-         * Default value is null
+         * Default value is null.
          *
          * @param message message for lock holder
          * @param handler callback which ignores the answer
          * @return builder
          */
-        public Builder onBusy(@Nonnull Serializable message, @Nonnull Runnable handler) {
+        public Builder onBusy(final Serializable message, final Runnable handler) {
             busyHandler = (appLocker, ex) -> {
                 appLocker.sendMessage(message);
                 handler.run();
@@ -331,18 +318,18 @@ public final class AppLocker {
 
         /**
          * Defines an action in situations when locking is impossible.<br>
-         * Default value is identity function (re-throws exception)
+         * Default value is identity function (re-throws exception).
          *
          * @param handler error processing function
          * @return builder
          */
-        public Builder onFail(@Nonnull Consumer<LockingException> handler) {
+        public Builder onFail(final Consumer<LockingException> handler) {
             failedHandler = handler;
             return this;
         }
 
         /**
-         * Build AppLocker
+         * Build AppLocker.
          *
          * @return AppLocker instance
          */

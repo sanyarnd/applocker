@@ -17,15 +17,13 @@
 
 package io.github.sanyarnd.applocker.exceptions;
 
-import javax.annotation.Nonnull;
-
 /**
- * Exception indicates that there was a failure (most probably I/O) during acquiring the lock
+ * Exception indicates that there was a failure (most probably I/O) during acquiring the lock.
  *
  * @author Alexander Biryukov
  */
 public class LockingFailedException extends LockingException {
-    public LockingFailedException(@Nonnull Throwable ex) {
+    public LockingFailedException(final Throwable ex) {
         super(ex);
     }
 }

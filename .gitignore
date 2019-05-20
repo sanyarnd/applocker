@@ -1,5 +1,11 @@
-target/
+### Wrapper ###
 .mvn/wrapper/maven-wrapper.jar
+
+### Build artifacts ###
+target/
+
+### PVS-Studio ###
+.PVS-Studio/
 
 ### STS ###
 .apt_generated

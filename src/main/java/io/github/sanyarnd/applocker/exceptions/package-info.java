@@ -15,15 +15,13 @@
 //     See the License for the specific language governing permissions and
 //     limitations under the License.
 
-package io.github.sanyarnd.applocker.exceptions;
-
 /**
- * Exception indicates that there is an issue with message server.
+ * Locking exception package.
  *
  * @author Alexander Biryukov
  */
-public class LockingMessageServerException extends LockingException {
-    public LockingMessageServerException(final String message) {
-        super(message);
-    }
-}
+
+@EverythingIsNonnullByDefault
+package io.github.sanyarnd.applocker.exceptions;
+
+import io.github.sanyarnd.applocker.annotations.EverythingIsNonnullByDefault;

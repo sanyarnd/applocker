@@ -19,11 +19,9 @@ package io.github.sanyarnd.applocker;
 
 import java.io.Serializable;
 
-import javax.annotation.Nonnull;
-
 /**
  * Interface for the function, which runs on the server side
- * and handles all incoming messages
+ * and handles all incoming messages.
  *
  * @param <I> message type
  * @param <O> answer type
@@ -31,11 +29,10 @@ import javax.annotation.Nonnull;
 @FunctionalInterface
 public interface MessageHandler<I extends Serializable, O extends Serializable> {
     /**
-     * Handle the received message and return the result
+     * Handle the received message and return the result.
      *
      * @param message input message
      * @return result of the message processing
      */
-    @Nonnull
-    O handleMessage(@Nonnull I message);
+    O handleMessage(I message);
 }

@@ -17,19 +17,17 @@
 
 package io.github.sanyarnd.applocker.exceptions;
 
-import javax.annotation.Nonnull;
-
 /**
- * Superclass of all locking exceptions
+ * Superclass of all locking exceptions.
  *
  * @author Alexander Biryukov
  */
 public class LockingException extends RuntimeException {
-    public LockingException(@Nonnull Throwable ex) {
+    public LockingException(final Throwable ex) {
         super(ex);
     }
 
-    public LockingException(@Nonnull String message) {
+    public LockingException(final String message) {
         super(message);
     }
 }
