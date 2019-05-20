@@ -1,3 +1,6 @@
+# 1.0.6
+- missing scm entry in pom.xml
+
 # 1.0.5
 - `Runnable` overload for `onFail` method
 - Removed Spotbugs amd PMD

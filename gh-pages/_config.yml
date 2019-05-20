@@ -1,6 +1,9 @@
 theme: jekyll-theme-slate
+plugins:
+  - jekyll-sitemap
+  - jekyll-titles-from-headings
 
-title: AppLocker
+
 description: Provides file-based locking mechanism with inter-process communication support
 
 show_downloads: true

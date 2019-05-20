@@ -6,7 +6,7 @@
 
     <groupId>io.github.sanyarnd</groupId>
     <artifactId>app-locker</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <url>https://sanyarnd.github.io/applocker/</url>
     <packaging>jar</packaging>
 
@@ -270,6 +270,12 @@
             </plugin>
         </plugins>
     </build>
+
+    <scm>
+        <url>https://github.com/sanyarnd/applocker</url>
+        <connection>scm:git:git@github.com:sanyarnd/applocker.git</connection>
+        <developerConnection>scm:git:git@github.com:sanyarnd/applocker.git</developerConnection>
+    </scm>
 
     <distributionManagement>
         <repository>
