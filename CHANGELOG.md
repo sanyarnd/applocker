@@ -1,3 +1,11 @@
+# 1.0.4
+- Nonnull by default for all API
+- Spotbugs and PMD integration
+- Checkstyle compliance
+- missing JavaDoc's
+- missing package-info.java
+- simplified pom.xml
+
 # 1.0.3
 - API changes
 - Improved javadoc

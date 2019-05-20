@@ -36,8 +36,8 @@ before_deploy:
   - cp -r target/apidocs gh-pages
   - cp README.md gh-pages/README.md
   - cp CHANGELOG.md gh-pages/CHANGELOG.md
-
 deploy:
+  # upload .jar files to releases page
   - provider: releases
     api_key: $GITHUB_API_KEY
     file:
@@ -47,12 +47,14 @@ deploy:
     skip_cleanup: true
     on:
       tags: true
+  # update gh-pages branch
   - provider: pages
     github_token: $GITHUB_API_KEY
     local_dir: gh-pages
     skip_cleanup: true
     on:
-      branch: master
+      tags: true
+  # deploy to bintray
   - provider: script
     script: "mvn --settings .m2/settings.xml deploy"
     skip_cleanup: true

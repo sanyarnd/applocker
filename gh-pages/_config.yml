@@ -6,5 +6,6 @@ description: Provides file-based locking mechanism with inter-process communicat
 show_downloads: true
 
 github:
-  tar_url: https://github.com/sanyarnd/applocker/releases
-  zip_url: https://bintray.com/sanya-rnd/maven-projects/applocker
+  jar_url: https://github.com/sanyarnd/applocker/releases
+  pom_url: https://bintray.com/sanya-rnd/maven-projects/applocker
+  api_url: https://sanyarnd.github.io/applocker/apidocs/index.html

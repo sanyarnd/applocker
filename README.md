@@ -47,13 +47,15 @@ try {
 }
 ```
 
+JavaDocs available [here](https://sanyarnd.github.io/applocker/apidocs/index.html).
+
 # Download
 Maven:
 ```xml
 <dependency> 
     <groupId>io.github.sanyarnd</groupId> 
     <artifactId>app-locker</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
 </dependency>
 
 <repositories>
@@ -66,7 +68,7 @@ Maven:
 ```
 Gradle:
 ```gradle
-compile 'io.github.sanyarnd:app-locker:1.0.3'
+compile 'io.github.sanyarnd:app-locker:1.0.4'
 
 repositories { 
     maven { 

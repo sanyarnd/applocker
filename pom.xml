@@ -6,7 +6,7 @@
 
     <groupId>io.github.sanyarnd</groupId>
     <artifactId>app-locker</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
     <url>https://sanyarnd.github.io/applocker/</url>
     <packaging>jar</packaging>
 
@@ -302,16 +302,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>${maven-jar-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>${maven-shade-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>${maven-dependency-plugin.version}</version>
             </plugin>
         </plugins>
     </build>
