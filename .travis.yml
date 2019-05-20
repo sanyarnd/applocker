@@ -30,14 +30,17 @@ after_success:
   - mvn pvsstudio:pvsCredentials pvsstudio:pvsAnalyze
   - mvn spotbugs:spotbugs
   - mvn pmd:pmd
-  - mvn sonar:sonar -DskipTests=true
+  - mvn sonar:sonar -DskipTests=true -Dmaven.install.skip=true
 
+# there is no deploy without tag (yet?),
+# skip before_deploy (and so deploy) if no tag provided
 before_deploy:
+  - if [ -z "$TRAVIS_TAG" ]; then exit 0; fi
+  - mvn source:jar javadoc:jar
   - cp -r target/apidocs gh-pages
   - cp README.md gh-pages/README.md
   - cp CHANGELOG.md gh-pages/CHANGELOG.md
 deploy:
-  # upload .jar files to releases page
   - provider: releases
     api_key: $GITHUB_API_KEY
     file:
@@ -47,16 +50,14 @@ deploy:
     skip_cleanup: true
     on:
       tags: true
-  # update gh-pages branch
   - provider: pages
     github_token: $GITHUB_API_KEY
     local_dir: gh-pages
     skip_cleanup: true
     on:
       tags: true
-  # deploy to bintray
   - provider: script
-    script: "mvn --settings .m2/settings.xml deploy"
+    script: mvn --settings .m2/settings.xml deploy -DskipTests=true -Dmaven.install.skip=true
     skip_cleanup: true
     on:
       tags: true
