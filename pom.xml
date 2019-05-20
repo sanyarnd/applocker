@@ -41,7 +41,6 @@
         <sonar.pvs-studio.reportPath>target/sonar-reports/pvs-output.xml</sonar.pvs-studio.reportPath>
         <sonar.java.spotbugs.reportPaths>target/sonar-reports/spotbugsXml.xml</sonar.java.spotbugs.reportPaths>
         <sonar.java.pmd.reportPaths>target/sonar-reports/pmd.xml</sonar.java.pmd.reportPaths>
-        <sonar.java.checkstyle.reportPaths>target/sonar-reports/checkstyle-result.xml</sonar.java.checkstyle.reportPaths>
 
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-clean-plugin.version>3.1.0</maven-clean-plugin.version>
@@ -108,22 +107,30 @@
                         <version>${checkstyle.version}</version>
                     </dependency>
                 </dependencies>
-                <configuration>
-                    <outputFile>target/sonar-reports/checkstyle-result.xml</outputFile>
-                    <suppressionsLocation>checkstyle/suppressions.xml</suppressionsLocation>
-                    <encoding>UTF-8</encoding>
-                    <consoleOutput>true</consoleOutput>
-                    <failsOnError>true</failsOnError>
-                </configuration>
                 <executions>
                     <execution>
-                        <id>validate</id>
+                        <id>sun-validate</id>
                         <phase>validate</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
+                        <configuration>
+                            <configLocation>sun_checks.xml</configLocation>
+                            <suppressionsLocation>checkstyle/sun_suppressions.xml</suppressionsLocation>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>custom-validate</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <configLocation>checkstyle/checks.xml</configLocation>
+                        </configuration>
                     </execution>
                 </executions>
+
             </plugin>
 
             <!--Code coverage-->

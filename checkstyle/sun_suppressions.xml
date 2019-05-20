@@ -13,6 +13,7 @@
               files="."/>
     <suppress checks="LeftCurly"
               files="."/>
+    <!--TODO: temporary rule to suppress JavaDoc varning, see https://github.com/checkstyle/checkstyle/issues/3453-->
     <suppress checks="UnusedImports"
               files="io.github.sanyarnd.applocker.AppLocker"/>
 </suppressions>

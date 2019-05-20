@@ -36,7 +36,6 @@ import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
 import io.github.sanyarnd.applocker.exceptions.LockingException;
 import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
 
-
 /**
  * Locker class, provides methods for locking mechanism and
  * encapsulates socket-based message server for IPC.

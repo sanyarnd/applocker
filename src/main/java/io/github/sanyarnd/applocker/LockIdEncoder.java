@@ -24,5 +24,11 @@ package io.github.sanyarnd.applocker;
  * @author Alexander Biryukov
  */
 public interface LockIdEncoder {
+    /**
+     * Encode string.
+     *
+     * @param string input string
+     * @return encoded string
+     */
     String encode(String string);
 }
