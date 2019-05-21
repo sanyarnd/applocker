@@ -37,9 +37,6 @@
         <maven.compiler.target>${java-version}</maven.compiler.target>
         <maven.compiler.useIncrementalCompilation>true</maven.compiler.useIncrementalCompilation>
 
-        <sonar.coverage.jacoco.xmlReportPaths>target/sonar-reports/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
-        <sonar.pvs-studio.reportPath>target/sonar-reports/pvs-output.xml</sonar.pvs-studio.reportPath>
-
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-clean-plugin.version>3.1.0</maven-clean-plugin.version>
         <maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
@@ -123,64 +120,6 @@
                         </configuration>
                     </execution>
                 </executions>
-
-            </plugin>
-
-            <!--Code coverage-->
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>${jacoco-maven-plugin.version}</version>
-                <configuration>
-                    <outputDirectory>target/sonar-reports</outputDirectory>
-                </configuration>
-            </plugin>
-
-            <!--Bugs etc-->
-            <plugin>
-                <groupId>org.sonarsource.scanner.maven</groupId>
-                <artifactId>sonar-maven-plugin</artifactId>
-                <version>${sonar-maven-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>com.pvsstudio</groupId>
-                <artifactId>pvsstudio-maven-plugin</artifactId>
-                <version>${pvsstudio-maven-plugin.version}</version>
-                <configuration>
-                    <username>PVS-Studio Free</username>
-                    <serialNumber>FREE-FREE-FREE-FREE</serialNumber>
-                    <analyzer>
-                        <outputType>xml</outputType>
-                        <outputFile>target/sonar-reports/pvs-output.xml</outputFile>
-                    </analyzer>
-                </configuration>
-            </plugin>
-
-            <!--Generate jar, sources, javadoc-->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>${maven-jar-plugin.version}</version>
-                <configuration>
-                    <archive>
-                        <addMavenDescriptor>false</addMavenDescriptor>
-                    </archive>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>${maven-source-plugin.version}</version>
-                <configuration>
-                    <archive>
-                        <addMavenDescriptor>false</addMavenDescriptor>
-                    </archive>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>${maven-javadoc-plugin.version}</version>
             </plugin>
 
             <!--Show if there are any updates for dependencies/plugins-->
@@ -224,7 +163,57 @@
                     </execution>
                 </executions>
             </plugin>
-            <!--Show full stacktrace in tests-->
+
+            <!--Bugs etc-->
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>${sonar-maven-plugin.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>com.pvsstudio</groupId>
+                <artifactId>pvsstudio-maven-plugin</artifactId>
+                <version>${pvsstudio-maven-plugin.version}</version>
+                <configuration>
+                    <analyzer>
+                        <outputType>xml</outputType>
+                    </analyzer>
+                </configuration>
+            </plugin>
+
+            <!--Code coverage-->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco-maven-plugin.version}</version>
+            </plugin>
+
+            <!--Lock versions of standard plugins to suppress warnings-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven-jar-plugin.version}</version>
+                <configuration>
+                    <archive>
+                        <addMavenDescriptor>false</addMavenDescriptor>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven-source-plugin.version}</version>
+                <configuration>
+                    <archive>
+                        <addMavenDescriptor>false</addMavenDescriptor>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven-javadoc-plugin.version}</version>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -234,8 +223,6 @@
                     <useFile>false</useFile>
                 </configuration>
             </plugin>
-
-            <!--Lock versions of standard plugins to suppress warnings-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

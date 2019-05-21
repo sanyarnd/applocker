@@ -27,8 +27,12 @@ install:
 
 after_success:
   - mvn org.jacoco:jacoco-maven-plugin:report
-  - mvn pvsstudio:pvsCredentials pvsstudio:pvsAnalyze
-  - mvn sonar:sonar -DskipTests=true -Dmaven.install.skip=true
+  - mvn pvsstudio:pvsCredentials -Dpvsstudio.username="PVS-Studio Free" -Dpvsstudio.serial="FREE-FREE-FREE-FREE"
+  - mvn pvsstudio:pvsAnalyze
+  - mvn sonar:sonar -DskipTests=true \
+    -Dmaven.install.skip=true \
+    -Dsonar.coverage.jacoco.xmlReportPaths="target/site/jacoco/jacoco.xml" \
+    -Dsonar.pvs-studio.reportPath="PVS-Studio.xml"
 
 # there is no deploy without tag (yet?),
 # skip before_deploy (and so deploy) if no tag provided
