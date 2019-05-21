@@ -273,30 +273,31 @@
 
     <repositories>
         <repository>
-            <id>central</id>
-            <name>Maven Plugin Repository</name>
+            <id>maven-central</id>
+            <name>Maven Dependency Repository</name>
             <url>http://repo1.maven.org/maven2</url>
         </repository>
         <repository>
-            <id>bintray</id>
-            <name>bintray-plugins</name>
+            <id>jcenter</id>
+            <name>JCenter Dependency Repository</name>
             <url>http://jcenter.bintray.com</url>
         </repository>
     </repositories>
     <pluginRepositories>
         <pluginRepository>
-            <id>central</id>
+            <id>pvsstudio-maven-repository</id>
+            <name>PVS-Studio Plugin Repository</name>
+            <url>http://files.viva64.com/java/pvsstudio-maven-repository/</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>maven-central</id>
             <name>Maven Plugin Repository</name>
             <url>http://repo1.maven.org/maven2</url>
         </pluginRepository>
         <pluginRepository>
-            <id>bintray</id>
-            <name>bintray-plugins</name>
+            <id>jcenter</id>
+            <name>JCenter Plugin Repository</name>
             <url>http://jcenter.bintray.com</url>
-        </pluginRepository>
-        <pluginRepository>
-            <id>pvsstudio-maven-repo</id>
-            <url>http://files.viva64.com/java/pvsstudio-maven-repository/</url>
         </pluginRepository>
     </pluginRepositories>
 </project>
