@@ -1,31 +1,31 @@
 # 1.0.6
-- missing scm entry in pom.xml
+- Added missing `<scm>` entry in `pom.xml`
 
 # 1.0.5
-- `Runnable` overload for `onFail` method
-- Removed Spotbugs amd PMD
-- pom.xml changes
+- Added `Runnable` overload for `Applocker.Builder#onFail`
+- Removed `Spotbugs` and `PMD`
+- `pom.xml` tweaks
 
 # 1.0.4
-- Nonnull by default for all API
-- Spotbugs and PMD integration
-- Checkstyle compliance
-- missing JavaDoc's
-- missing package-info.java
-- simplified pom.xml
+- Methods, parameters and fields annotated as `Nonnull` by default
+- `Spotbugs` and `PMD` integration
+- `Checkstyle` compliance
+- Missing `JavaDoc`'s
+- Missing `package-info.java`
+- Simplified `pom.xml`
 
 # 1.0.3
-- API changes
-- Improved javadoc
-- Internal re-organization
-- Missing maven wrapper executable for *nix
+- Breaking API name changes
+- Improved `JavaDoc`
+- Refactoring
+- Added `mvnw` executable for `Linux` and `Mac`
 
 # 1.0.2
-- `AppLocker.Builder`'s `busy` method now supports `Runnable` callback
+- Added `Runnable` overload for `Applocker.Builder#busy`
 - javadoc and sources are now distributed along with the package 
 
 # 1.0.1
-- Removed unnecessary builders
+- Removed unnecessary classes
 - Improved test coverage
 
 # 1.0
