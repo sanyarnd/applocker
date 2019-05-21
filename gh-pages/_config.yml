@@ -2,13 +2,13 @@ theme: jekyll-theme-slate
 plugins:
   - jekyll-sitemap
 
-title: Application Locker
-description: Provides file-based locking mechanism with inter-process communication support
+title: "Application Locker"
+description: "Provides file-based locking mechanism with inter-process communication support"
 
 github:
-  owner_name: Alexander Biryukov
-  jar_url: https://github.com/sanyarnd/applocker/releases
-  pom_url: https://bintray.com/sanya-rnd/maven-projects/applocker
-  api_url: https://sanyarnd.github.io/applocker/apidocs/index.html
+  owner_name: "Alexander Biryukov"
+  jar_url: "https://github.com/sanyarnd/applocker/releases"
+  pom_url: "#download"
+  api_url: "https://sanyarnd.github.io/applocker/apidocs/index.html"
 
 google_analytics: "UA-140515150-1"
