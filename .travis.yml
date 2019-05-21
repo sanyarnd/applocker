@@ -44,9 +44,8 @@ deploy:
     github_token: $GITHUB_API_KEY
     local_dir: gh-pages
     skip_cleanup: true
-  - provider: script
-    script: mvn --settings .m2/settings.xml deploy -DskipTests=true -Dmaven.install.skip=true
-    skip_cleanup: true
+    on:
+      tags: true
   - provider: releases
     api_key: $GITHUB_API_KEY
     file:
@@ -54,6 +53,8 @@ deploy:
       - /home/travis/build/sanyarnd/applocker/target/app-locker-$TRAVIS_TAG-javadoc.jar
       - /home/travis/build/sanyarnd/applocker/target/app-locker-$TRAVIS_TAG-sources.jar
     skip_cleanup: true
-    # do not push snapshots to releases page
     on:
       tags: true
+  - provider: script
+    script: mvn --settings .m2/settings.xml deploy -DskipTests=true -Dmaven.install.skip=true
+    skip_cleanup: true
