@@ -24,7 +24,7 @@ package io.github.sanyarnd.applocker.exceptions;
  */
 public class LockingMessageServerException extends LockingException {
     /**
-     * Constructs a new locking message server exception with the specified detail message.
+     * Constructs a new exception with the specified detail message.
      *
      * @param message the detail message. The detail message is saved for
      *                later retrieval by the {@link #getMessage()} method.

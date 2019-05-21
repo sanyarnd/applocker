@@ -18,17 +18,16 @@
 package io.github.sanyarnd.applocker.exceptions;
 
 /**
- * Exception indicates that there is an issue with communication between current instance and lock holder.
+ * Exception indicates that there is a problem with communication between current instance and lock holder.
  *
  * @author Alexander Biryukov
  */
 public class LockingCommunicationException extends LockingException {
     /**
-     * Constructs a new locking communication exception with the specified cause and a
+     * Constructs a new exception with the specified cause and a
      * detail message of <tt>(cause==null ? null : cause.toString())</tt>
      * (which typically contains the class and detail message of
-     * <tt>cause</tt>).  This constructor is useful for runtime exceptions
-     * that are little more than wrappers for other throwables.
+     * <tt>cause</tt>).
      *
      * @param cause the cause (which is saved for later retrieval by the
      *              {@link #getCause()} method).  (A <tt>null</tt> value is
@@ -40,7 +39,7 @@ public class LockingCommunicationException extends LockingException {
     }
 
     /**
-     * Constructs a new locking communication exception with the specified detail message.
+     * Constructs a new exception with the specified detail message.
      *
      * @param message the detail message. The detail message is saved for
      *                later retrieval by the {@link #getMessage()} method.

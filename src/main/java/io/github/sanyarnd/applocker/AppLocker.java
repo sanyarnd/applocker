@@ -37,11 +37,11 @@ import io.github.sanyarnd.applocker.exceptions.LockingException;
 import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
 
 /**
- * Locker class, provides methods for locking mechanism and
+ * Locker class provides methods for locking mechanism and
  * encapsulates socket-based message server for IPC.
  * <p>
- * You don't need call {@link #unlock()} directly, method will be called once JVM is terminated.<br>
- * You're free to call {@link #unlock()} any time if it is required by your application logic.
+ * No need to call {@link #unlock()} directly, method will be called once JVM is terminated.<br>
+ * Feel free to call {@link #unlock()} any time if it is required by your application logic.
  *
  * @author Alexander Biryukov
  */
@@ -97,8 +97,8 @@ public final class AppLocker {
     /**
      * Acquire the lock.
      *
-     * @throws LockingBusyException          if lock is already taken by someone
-     * @throws LockingFailedException        if any error occurred during the locking process (I/O exception)
+     * @throws LockingBusyException          if lock has already been taken by someone
+     * @throws LockingFailedException        if any error has occurred during the locking process (I/O exception)
      * @throws LockingCommunicationException if there are issues with starting message server
      */
     public void lock() {
@@ -185,13 +185,13 @@ public final class AppLocker {
     }
 
     /**
-     * Send message to AppLocker instance who's holding the lock (including itself).
+     * Send message to AppLocker instance that's holding the lock (including self).
      *
      * @param message message
      * @param <I>     message type
      * @param <O>     return type
      * @return the answer from AppLocker's message messageHandler
-     * @throws LockingCommunicationException if there is an issue with communicating to other AppLocker instance
+     * @throws LockingCommunicationException if there's a trouble communicating to other AppLocker instance
      */
     public <I extends Serializable, O extends Serializable> O sendMessage(final I message) {
         try {
@@ -236,7 +236,7 @@ public final class AppLocker {
          * Sets the path where the lock file will be stored.<br>
          * Default value is "."
          *
-         * @param storePath store path
+         * @param storePath storing path
          * @return builder
          */
         public Builder setPath(final Path storePath) {
@@ -262,11 +262,11 @@ public final class AppLocker {
          * Encodes lock lockId to filesystem-friendly entry.<br>
          * Default value is "SHA-1" encoder.
          *
-         * @param provider name encoder
+         * @param idEncoder name encoder
          * @return builder
          */
-        public Builder setIdEncoder(final LockIdEncoder provider) {
-            encoder = provider;
+        public Builder setIdEncoder(final LockIdEncoder idEncoder) {
+            encoder = idEncoder;
             return this;
         }
 
@@ -274,7 +274,7 @@ public final class AppLocker {
          * Defines a callback if locking was successful.<br>
          * Default value is empty function.
          *
-         * @param callback the function to call after successful locking
+         * @param callback function to call after successful locking
          * @return builder
          */
         public Builder onSuccess(final Runnable callback) {
@@ -283,10 +283,10 @@ public final class AppLocker {
         }
 
         /**
-         * Defines an action in situations when lock is already taken.<br>
+         * Defines the action for when the lock is already taken.<br>
          * Default value is null.
          *
-         * @param message message for lock holder
+         * @param message message for the lock holder
          * @param handler answer processing function
          * @param <T>     answer type
          * @return builder
@@ -300,11 +300,11 @@ public final class AppLocker {
         }
 
         /**
-         * Defines an action in situations when lock is already taken.<br>
+         * Defines the action for when the lock is already taken.<br>
          * Default value is null.
          *
-         * @param message message for lock holder
-         * @param handler callback which ignores the answer
+         * @param message message for the lock holder
+         * @param handler answer processing function
          * @return builder
          */
         public Builder onBusy(final Serializable message, final Runnable handler) {
@@ -316,7 +316,7 @@ public final class AppLocker {
         }
 
         /**
-         * Defines an action in situations when locking is impossible.<br>
+         * Defines the action for when locking is impossible.<br>
          * Default value is identity function (re-throws exception).
          *
          * @param handler error processing function
@@ -328,7 +328,7 @@ public final class AppLocker {
         }
 
         /**
-         * Defines an action in situations when locking is impossible.<br>
+         * Defines the action for when locking is impossible.<br>
          * Default value is identity function (re-throws exception).
          *
          * @param handler error processing function

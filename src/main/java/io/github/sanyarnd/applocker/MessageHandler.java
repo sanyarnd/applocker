@@ -20,7 +20,7 @@ package io.github.sanyarnd.applocker;
 import java.io.Serializable;
 
 /**
- * Interface for the function, which runs on the server side
+ * Interface for the function that runs on the server side
  * and handles all incoming messages.
  *
  * @param <I> message type
