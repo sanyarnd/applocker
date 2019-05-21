@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.sanyarnd</groupId>
-    <artifactId>app-locker</artifactId>
+    <artifactId>applocker</artifactId>
     <version>1.0.6-SNAPSHOT</version>
     <url>https://sanyarnd.github.io/applocker/</url>
     <packaging>jar</packaging>
@@ -58,7 +58,7 @@
         <checkstyle.version>8.20</checkstyle.version>
 
         <lombok.version>1.18.8</lombok.version>
-        <jsr305.version>3.0.2</jsr305.version>
+        <checker-qual.version>2.8.1</checker-qual.version>
         <junit-jupiter.version>5.5.0-M1</junit-jupiter.version>
     </properties>
 
@@ -70,9 +70,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
-            <version>${jsr305.version}</version>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+            <version>${checker-qual.version}</version>
             <scope>provided</scope>
         </dependency>
 
