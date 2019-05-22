@@ -19,6 +19,8 @@ package io.github.sanyarnd.applocker;
 
 import java.io.Serializable;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 /**
  * Interface for the function that runs on the server side
  * and handles all incoming messages.
@@ -34,5 +36,6 @@ public interface MessageHandler<I extends Serializable, O extends Serializable> 
      * @param message input message
      * @return result of the message processing
      */
-    O handleMessage(I message);
+    @NonNull
+    O handleMessage(@NonNull I message);
 }

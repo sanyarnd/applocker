@@ -20,9 +20,4 @@
  *
  * @author Alexander Biryukov
  */
-
-@DefaultQualifier(NonNull.class)
 package io.github.sanyarnd.applocker;
-
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.framework.qual.DefaultQualifier;

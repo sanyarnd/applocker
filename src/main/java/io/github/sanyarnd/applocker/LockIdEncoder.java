@@ -17,6 +17,8 @@
 
 package io.github.sanyarnd.applocker;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 /**
  * Provides the safe way to encode application id such that it can be stored
  * on filesystem without exceptions: invalid characters, too long etc.
@@ -30,5 +32,6 @@ public interface LockIdEncoder {
      * @param string input string
      * @return encoded string
      */
-    String encode(String string);
+    @NonNull
+    String encode(@NonNull String string);
 }

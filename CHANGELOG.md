@@ -1,3 +1,7 @@
+# 1.1.1
+- Specify nullable annotations directly, 
+`package-info.java` annotations are not sufficient
+
 # 1.1
 - `JSR305` was replaced with `Checker Framework Annotations`
 - Cleanup documentation and all textual resources

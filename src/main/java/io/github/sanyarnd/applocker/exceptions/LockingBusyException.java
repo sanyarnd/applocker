@@ -17,6 +17,8 @@
 
 package io.github.sanyarnd.applocker.exceptions;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 /**
  * Exception indicates that the lock has already been acquired.
  *
@@ -34,7 +36,7 @@ public class LockingBusyException extends LockingException {
      *              permitted, and indicates that the cause is nonexistent or
      *              unknown.)
      */
-    public LockingBusyException(final Throwable cause) {
+    public LockingBusyException(@NonNull final Throwable cause) {
         super(cause);
     }
 }

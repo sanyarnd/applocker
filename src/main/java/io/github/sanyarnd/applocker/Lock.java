@@ -26,6 +26,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import io.github.sanyarnd.applocker.exceptions.LockingBusyException;
@@ -37,13 +38,14 @@ import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
  * @author Alexander Biryukov
  */
 final class Lock implements AutoCloseable {
+    @NonNull
     private final Path file;
     @Nullable
     private FileChannel channel;
     @Nullable
     private FileLock fileLock;
 
-    Lock(final Path underlyingFile) {
+    Lock(@NonNull final Path underlyingFile) {
         file = underlyingFile.toAbsolutePath();
     }
 

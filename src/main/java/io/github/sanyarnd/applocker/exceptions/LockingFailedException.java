@@ -17,6 +17,8 @@
 
 package io.github.sanyarnd.applocker.exceptions;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 /**
  * Exception indicates that there was a failure (most probably I/O) during acquiring the lock.
  *
@@ -34,7 +36,7 @@ public class LockingFailedException extends LockingException {
      *              permitted, and indicates that the cause is nonexistent or
      *              unknown.)
      */
-    public LockingFailedException(final Throwable cause) {
+    public LockingFailedException(@NonNull final Throwable cause) {
         super(cause);
     }
 }

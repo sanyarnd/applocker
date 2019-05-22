@@ -28,6 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
@@ -41,15 +42,18 @@ import io.github.sanyarnd.applocker.exceptions.LockingMessageServerException;
  * @author Alexander Biryukov
  */
 final class Server<I extends Serializable, O extends Serializable> {
+    @NonNull
     private final MessageHandler<I, O> messageHandler;
+    @NonNull
     private final Runtime runtime;
     @Nullable
     private Future<?> threadHandle;
     @Nullable
     private ServerLoop runnable;
+    @NonNull
     private Thread shutdownHook;
 
-    Server(final MessageHandler<I, O> handler) {
+    Server(@NonNull final MessageHandler<I, O> handler) {
         messageHandler = handler;
         runtime = Runtime.getRuntime();
 

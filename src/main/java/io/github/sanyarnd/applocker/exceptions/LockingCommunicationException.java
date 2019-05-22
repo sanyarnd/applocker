@@ -17,6 +17,8 @@
 
 package io.github.sanyarnd.applocker.exceptions;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 /**
  * Exception indicates that there is a problem with communication between current instance and lock holder.
  *
@@ -34,7 +36,7 @@ public class LockingCommunicationException extends LockingException {
      *              permitted, and indicates that the cause is nonexistent or
      *              unknown.)
      */
-    public LockingCommunicationException(final Throwable cause) {
+    public LockingCommunicationException(@NonNull final Throwable cause) {
         super(cause);
     }
 
@@ -44,7 +46,7 @@ public class LockingCommunicationException extends LockingException {
      * @param message the detail message. The detail message is saved for
      *                later retrieval by the {@link #getMessage()} method.
      */
-    public LockingCommunicationException(final String message) {
+    public LockingCommunicationException(@NonNull final String message) {
         super(message);
     }
 }

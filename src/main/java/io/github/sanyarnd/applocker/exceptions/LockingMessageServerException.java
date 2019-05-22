@@ -17,6 +17,8 @@
 
 package io.github.sanyarnd.applocker.exceptions;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 /**
  * Exception indicates that there is an issue with message server.
  *
@@ -29,7 +31,7 @@ public class LockingMessageServerException extends LockingException {
      * @param message the detail message. The detail message is saved for
      *                later retrieval by the {@link #getMessage()} method.
      */
-    public LockingMessageServerException(final String message) {
+    public LockingMessageServerException(@NonNull final String message) {
         super(message);
     }
 }

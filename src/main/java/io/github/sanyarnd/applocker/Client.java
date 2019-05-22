@@ -25,6 +25,8 @@ import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.Socket;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
 
 /**
@@ -41,7 +43,8 @@ final class Client<I extends Serializable, O extends Serializable> {
         port = portNumber;
     }
 
-    O send(final I message) {
+    @NonNull
+    O send(@NonNull final I message) {
         try (Socket socket = new Socket(InetAddress.getLocalHost(), port);
              ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
              ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream())) {

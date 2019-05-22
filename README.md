@@ -66,25 +66,13 @@ Maven:
 <dependency> 
     <groupId>io.github.sanyarnd</groupId> 
     <artifactId>app-locker</artifactId>
-    <version>1.1</version>
+    <version>1.1.1</version>
 </dependency>
-
-<repositories>
-    <repository>
-        <id>bintray</id>
-        <name>Bintray Dependency Repository</name>
-        <url>http://jcenter.bintray.com</url>
-    </repository>
-</repositories>
 ```
 
 Gradle:
 ```gradle
-compile 'io.github.sanyarnd:app-locker:1.1'
-
-repositories {  
-   jcenter()  
-}
+compile 'io.github.sanyarnd:app-locker:1.1.1'
 ```
  
 Standalone jars are available on [releases](https://github.com/sanyarnd/applocker/releases) page.

@@ -22,14 +22,17 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Formatter;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 /**
  * SHA-1 string encoder.
  *
  * @author Alexander Biryukov
  */
 final class Sha1Encoder implements LockIdEncoder {
+    @NonNull
     @Override
-    public String encode(final String string) {
+    public String encode(@NonNull final String string) {
         try {
             MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
             sha1.reset();
