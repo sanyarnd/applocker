@@ -57,3 +57,5 @@ deploy:
   - provider: script
     script: mvn --settings .m2/settings.xml deploy -DskipTests=true
     skip_cleanup: true
+    on:
+      tags: true

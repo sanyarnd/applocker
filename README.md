@@ -69,7 +69,6 @@ Maven:
     <version>1.1</version>
 </dependency>
 
-<!--Artifact will be published on Maven Central soon-->
 <repositories>
     <repository>
         <id>bintray</id>
@@ -83,7 +82,6 @@ Gradle:
 ```gradle
 compile 'io.github.sanyarnd:app-locker:1.1'
 
-// Artifact will be published on Maven Central soon
 repositories {  
    jcenter()  
 }
