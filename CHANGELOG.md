@@ -1,3 +1,8 @@
+# 1.1
+- `JSR305` was replaced with `Checker Framework Annotations`
+- Cleanup documentation and all textual resources
+- `pom.xml` tweaks
+
 # 1.0.6
 - Added missing `<scm>` entry in `pom.xml`
 

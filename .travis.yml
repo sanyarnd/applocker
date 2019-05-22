@@ -23,7 +23,7 @@ addons:
 before_install:
   - chmod +x mvnw
 install:
-  mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install source:jar javadoc:jar -B -V
+  mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install -B -V
 
 after_success:
   - mvn org.jacoco:jacoco-maven-plugin:report
@@ -55,5 +55,5 @@ deploy:
     on:
       tags: true
   - provider: script
-    script: mvn --settings .m2/settings.xml deploy -DskipTests=true -Dmaven.install.skip=true
+    script: mvn --settings .m2/settings.xml deploy -DskipTests=true
     skip_cleanup: true

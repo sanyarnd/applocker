@@ -66,7 +66,7 @@ Maven:
 <dependency> 
     <groupId>io.github.sanyarnd</groupId> 
     <artifactId>app-locker</artifactId>
-    <version>1.0.6</version>
+    <version>1.1</version>
 </dependency>
 
 <!--Artifact will be published on Maven Central soon-->
@@ -81,7 +81,7 @@ Maven:
 
 Gradle:
 ```gradle
-compile 'io.github.sanyarnd:app-locker:1.0.6'
+compile 'io.github.sanyarnd:app-locker:1.1'
 
 // Artifact will be published on Maven Central soon
 repositories {  

@@ -6,7 +6,7 @@
 
     <groupId>io.github.sanyarnd</groupId>
     <artifactId>app-locker</artifactId>
-    <version>1.0.6-SNAPSHOT</version>
+    <version>1.1</version>
     <url>https://sanyarnd.github.io/applocker/</url>
     <packaging>jar</packaging>
 
@@ -209,11 +209,30 @@
                         <addMavenDescriptor>false</addMavenDescriptor>
                     </archive>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>source-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>${maven-javadoc-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>javadoc-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
