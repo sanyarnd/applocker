@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.sanyarnd</groupId>
-    <artifactId>applocker</artifactId>
+    <artifactId>app-locker</artifactId>
     <version>1.0.6-SNAPSHOT</version>
     <url>https://sanyarnd.github.io/applocker/</url>
     <packaging>jar</packaging>
