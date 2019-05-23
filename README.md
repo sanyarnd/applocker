@@ -66,13 +66,13 @@ Maven:
 <dependency> 
     <groupId>io.github.sanyarnd</groupId> 
     <artifactId>app-locker</artifactId>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
 </dependency>
 ```
 
 Gradle:
 ```gradle
-compile 'io.github.sanyarnd:app-locker:1.1.1'
+compile 'io.github.sanyarnd:app-locker:1.1.2'
 ```
  
 Standalone jars are available on [releases](https://github.com/sanyarnd/applocker/releases) page.

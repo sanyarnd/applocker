@@ -1,3 +1,6 @@
+# 1.1.2
+- Enable `SO_REUSEADDR` feature for client
+ 
 # 1.1.1
 - Specify nullable annotations directly, 
 `package-info.java` annotations are not sufficient

@@ -48,7 +48,7 @@ final class Client<I extends Serializable, O extends Serializable> {
         try (Socket socket = new Socket(InetAddress.getLocalHost(), port);
              ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
              ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream())) {
-
+            socket.setReuseAddress(true);
             output.writeObject(message);
 
             @SuppressWarnings("unchecked")
