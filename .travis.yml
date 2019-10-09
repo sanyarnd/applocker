@@ -4,12 +4,13 @@ dist: xenial
 sudo: false
 
 jdk:
-  - openjdk8
+  - openjdk11
 
 cache:
   directories:
     - $HOME/.m2
     - $HOME/.sonar/cache
+    - $HOME/.mvn
 
 git:
   depth: false
@@ -22,17 +23,13 @@ addons:
 
 before_install:
   - chmod +x mvnw
-install:
-  mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent install -B -V
-
+install: ./mvnw clean install
+  --activate-profiles checkstyle,integration-tests,with-coverage,create-javadoc-and-sources,logging
+  --batch-mode --show-version --no-transfer-progress --errors
+script: skip
 after_success:
-  - mvn org.jacoco:jacoco-maven-plugin:report
-  - mvn pvsstudio:pvsCredentials -Dpvsstudio.username="PVS-Studio Free" -Dpvsstudio.serial="FREE-FREE-FREE-FREE"
-  - mvn pvsstudio:pvsAnalyze
-  - mvn sonar:sonar -DskipTests=true \
-    -Dmaven.install.skip=true \
-    -Dsonar.coverage.jacoco.xmlReportPaths="target/site/jacoco/jacoco.xml" \
-    -Dsonar.pvs-studio.reportPath="PVS-Studio.xml"
+  - ./mvnw sonar:sonar -DskipTests=true --activate-profiles analysis-plugins
+    --show-version --no-transfer-progress --errors
 
 before_deploy:
   - cp -r target/apidocs gh-pages
@@ -44,7 +41,7 @@ deploy:
     local_dir: gh-pages
     skip_cleanup: true
     on:
-      tags: true
+      branch: master
   - provider: releases
     api_key: $GITHUB_API_KEY
     file:
@@ -55,7 +52,9 @@ deploy:
     on:
       tags: true
   - provider: script
-    script: mvn --settings .m2/settings.xml deploy -DskipTests=true
+    script: ./mvnw deploy --settings .m2/settings.xml -DskipTests
+      --activate-profiles deploy-bintray,create-javadoc-and-sources
+      --show-version --no-transfer-progress --errors
     skip_cleanup: true
     on:
       tags: true

@@ -1,39 +1,18 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
-//
-//                     Copyright 2019 Alexander Biryukov
-//
-//     Licensed under the Apache License, Version 2.0 (the "License");
-//     you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
-//
-//               http://www.apache.org/licenses/LICENSE-2.0
-//
-//     Unless required by applicable law or agreed to in writing, software
-//     distributed under the License is distributed on an "AS IS" BASIS,
-//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//     See the License for the specific language governing permissions and
-//     limitations under the License.
-
 package io.github.sanyarnd.applocker;
-
-import java.io.Serializable;
-import java.util.ArrayList;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
-import io.github.sanyarnd.applocker.exceptions.LockingMessageServerException;
+import java.io.Serializable;
+import java.util.ArrayList;
 
-
-public class MessagingTest {
+class MessagingTest {
     private static <T extends Serializable> MessageHandler<T, T> createEchoHandler() {
         return message -> message;
     }
 
     @Test
-    public void send_and_receive_string() {
+    void send_and_receive_string() {
         MessageHandler<String, String> echoHandler = createEchoHandler();
         Server<String, String> server = new Server<>(echoHandler);
         server.start();
@@ -48,7 +27,7 @@ public class MessagingTest {
     }
 
     @Test
-    public void send_and_receive_array_list() {
+    void send_and_receive_array_list() {
         MessageHandler<ArrayList<Integer>, ArrayList<Integer>> echoHandler = createEchoHandler();
         Server<ArrayList<Integer>, ArrayList<Integer>> server = new Server<>(echoHandler);
         server.start();
@@ -64,7 +43,7 @@ public class MessagingTest {
     }
 
     @Test
-    public void send_and_receive_multiple_clients() {
+    void send_and_receive_multiple_clients() {
         MessageHandler<String, String> echoHandler = createEchoHandler();
         Server<String, String> server = new Server<>(echoHandler);
         server.start();
@@ -88,7 +67,7 @@ public class MessagingTest {
     }
 
     @Test
-    public void client_throws_if_no_server() {
+    void client_throws_if_no_server() {
         final Client<String, String> client = new Client<>(0);
 
         final String message = "test";
@@ -96,14 +75,14 @@ public class MessagingTest {
     }
 
     @Test
-    public void port_throws_if_no_server() {
+    void port_throws_if_no_server() {
         final Server<String, String> server = new Server<>(createEchoHandler());
 
         Assertions.assertThrows(LockingCommunicationException.class, server::getPort);
     }
 
     @Test
-    public void port_throws_if_server_exception() {
+    void port_throws_if_server_exception() {
         final Server<String, String> server = new Server<>(e -> {
             throw new IllegalArgumentException();
         });
@@ -116,7 +95,7 @@ public class MessagingTest {
     }
 
     @Test
-    public void client_throws_1_if_types_do_not_match() {
+    void client_throws_1_if_types_do_not_match() {
         MessageHandler<String, String> echoHandler = createEchoHandler();
         Server<String, String> server = new Server<>(echoHandler);
         server.start();
@@ -135,7 +114,7 @@ public class MessagingTest {
     }
 
     @Test
-    public void client_throws_2_if_types_do_not_match() {
+    void client_throws_2_if_types_do_not_match() {
         // we need to directly create string overloaded version instead of using createEchoHandler
         // otherwise there won't be exception inside this handler when types won't match
         MessageHandler<String, String> handler = message -> message;

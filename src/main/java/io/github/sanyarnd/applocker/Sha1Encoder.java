@@ -1,28 +1,11 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
-//
-//                     Copyright 2019 Alexander Biryukov
-//
-//     Licensed under the Apache License, Version 2.0 (the "License");
-//     you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
-//
-//               http://www.apache.org/licenses/LICENSE-2.0
-//
-//     Unless required by applicable law or agreed to in writing, software
-//     distributed under the License is distributed on an "AS IS" BASIS,
-//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//     See the License for the specific language governing permissions and
-//     limitations under the License.
-
 package io.github.sanyarnd.applocker;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Formatter;
-
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * SHA-1 string encoder.
@@ -30,15 +13,14 @@ import org.checkerframework.checker.nullness.qual.NonNull;
  * @author Alexander Biryukov
  */
 final class Sha1Encoder implements LockIdEncoder {
-    @NonNull
     @Override
-    public String encode(@NonNull final String string) {
+    public @NotNull String encode(final @NotNull String string) {
         try {
-            MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
+            final MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
             sha1.reset();
             sha1.update(string.getBytes(StandardCharsets.UTF_8));
 
-            byte[] bytes = sha1.digest();
+            final byte[] bytes = sha1.digest();
             try (Formatter formatter = new Formatter()) {
                 for (byte b : bytes) {
                     formatter.format("%02x", b);

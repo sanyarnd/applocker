@@ -1,21 +1,7 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
-//
-//                     Copyright 2019 Alexander Biryukov
-//
-//     Licensed under the Apache License, Version 2.0 (the "License");
-//     you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
-//
-//               http://www.apache.org/licenses/LICENSE-2.0
-//
-//     Unless required by applicable law or agreed to in writing, software
-//     distributed under the License is distributed on an "AS IS" BASIS,
-//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//     See the License for the specific language governing permissions and
-//     limitations under the License.
-
 package io.github.sanyarnd.applocker;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -28,12 +14,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
-import io.github.sanyarnd.applocker.exceptions.LockingMessageServerException;
-
 /**
  * Socket-based server.
  *
@@ -42,18 +22,13 @@ import io.github.sanyarnd.applocker.exceptions.LockingMessageServerException;
  * @author Alexander Biryukov
  */
 final class Server<I extends Serializable, O extends Serializable> {
-    @NonNull
-    private final MessageHandler<I, O> messageHandler;
-    @NonNull
-    private final Runtime runtime;
-    @Nullable
-    private Future<?> threadHandle;
-    @Nullable
-    private ServerLoop runnable;
-    @NonNull
-    private Thread shutdownHook;
+    private final @NotNull MessageHandler<I, O> messageHandler;
+    private final @NotNull Runtime runtime;
+    private final @NotNull Thread shutdownHook;
+    private @Nullable Future<?> threadHandle;
+    private @Nullable ServerLoop runnable;
 
-    Server(@NonNull final MessageHandler<I, O> handler) {
+    Server(final @NotNull MessageHandler<I, O> handler) {
         messageHandler = handler;
         runtime = Runtime.getRuntime();
 
@@ -65,8 +40,8 @@ final class Server<I extends Serializable, O extends Serializable> {
             throw new LockingCommunicationException("The server is already running");
         }
 
-        ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "AppLocker MessageServer");
+        final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
+            final Thread t = new Thread(r, "AppLocker MessageServer");
             t.setDaemon(true);
             return t;
         });
@@ -97,7 +72,8 @@ final class Server<I extends Serializable, O extends Serializable> {
      *
      * @return port
      * @throws LockingCommunicationException if message server is not running
-     * @throws LockingMessageServerException if server is in exception state (also possible race with {@link #stop()} call)
+     * @throws LockingMessageServerException if server is in exception state (also possible race with {@link #stop()}
+     *                                       call)
      */
     int getPort() {
         if (threadHandle != null && threadHandle.isDone()) {
@@ -110,12 +86,13 @@ final class Server<I extends Serializable, O extends Serializable> {
     }
 
     /**
-     * Blocking version of {@link #getPort()}, ignores {@link LockingCommunicationException}
-     * and tries to retrieve the port number.<br>
-     * This method is useful for situations where you need to retrieve the port number right after the start
+     * Blocking version of {@link #getPort()}, ignores {@link LockingCommunicationException} and tries to retrieve the
+     * port number.<br> This method is useful for situations where you need to retrieve the port number right after the
+     * start
      *
      * @return port number
-     * @throws LockingMessageServerException if server is in exception state (also possible race with {@link #stop()} call)
+     * @throws LockingMessageServerException if server is in exception state (also possible race with {@link #stop()}
+     *                                       call)
      */
     int getPortBlocking() {
         while (true) {
@@ -144,9 +121,8 @@ final class Server<I extends Serializable, O extends Serializable> {
                          ObjectOutputStream oos = new ObjectOutputStream(channel.socket().getOutputStream());
                          ObjectInputStream ois = new ObjectInputStream(channel.socket().getInputStream())) {
                         try {
-                            @SuppressWarnings("unchecked")
-                            I message = (I) ois.readObject();
-                            O answer = messageHandler.handleMessage(message);
+                            @SuppressWarnings("unchecked") final I message = (I) ois.readObject();
+                            final O answer = messageHandler.handleMessage(message);
                             oos.writeObject(answer);
                         } catch (IOException | ClassNotFoundException ignored) {
                             // there's a failure during de-serialization or handling the message

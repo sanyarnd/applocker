@@ -6,7 +6,7 @@
 
     <groupId>io.github.sanyarnd</groupId>
     <artifactId>app-locker</artifactId>
-    <version>1.1.2</version>
+    <version>2.0.0-SNAPSHOT</version>
     <url>https://sanyarnd.github.io/applocker/</url>
     <packaging>jar</packaging>
 
@@ -29,121 +29,45 @@
     </developers>
 
     <properties>
-        <maven-minimum.version>3.3.9</maven-minimum.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-
-        <java-version>1.8</java-version>
-        <maven.compiler.source>${java-version}</maven.compiler.source>
-        <maven.compiler.target>${java-version}</maven.compiler.target>
-        <maven.compiler.useIncrementalCompilation>true</maven.compiler.useIncrementalCompilation>
-
-        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
-        <maven-clean-plugin.version>3.1.0</maven-clean-plugin.version>
-        <maven-deploy-plugin.version>3.0.0-M1</maven-deploy-plugin.version>
-        <maven-install-plugin.version>3.0.0-M1</maven-install-plugin.version>
-        <maven-resources-plugin.version>3.1.0</maven-resources-plugin.version>
-        <maven-site-plugin.version>3.7.1</maven-site-plugin.version>
-        <maven-surefire-plugin.version>3.0.0-M3</maven-surefire-plugin.version>
-        <maven-enforcer-plugin.version>3.0.0-M2</maven-enforcer-plugin.version>
-        <maven-jar-plugin.version>3.1.2</maven-jar-plugin.version>
-        <maven-javadoc-plugin.version>3.1.0</maven-javadoc-plugin.version>
-        <maven-source-plugin.version>3.1.0</maven-source-plugin.version>
-
-        <versions-maven-plugin.version>2.7</versions-maven-plugin.version>
-        <pvsstudio-maven-plugin.version>7.02.32034</pvsstudio-maven-plugin.version>
-        <jacoco-maven-plugin.version>0.8.4</jacoco-maven-plugin.version>
-        <sonar-maven-plugin.version>3.6.0.1398</sonar-maven-plugin.version>
-        <maven-checkstyle-plugin.version>3.1.0</maven-checkstyle-plugin.version>
-        <checkstyle.version>8.20</checkstyle.version>
-
-        <lombok.version>1.18.8</lombok.version>
-        <checker-qual.version>2.8.1</checker-qual.version>
-        <junit-jupiter.version>5.5.0-M1</junit-jupiter.version>
     </properties>
+
+    <scm>
+        <url>https://github.com/sanyarnd/applocker</url>
+        <connection>scm:git:git@github.com:sanyarnd/applocker.git</connection>
+        <developerConnection>scm:git:git@github.com:sanyarnd/applocker.git</developerConnection>
+    </scm>
 
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
+            <version>1.18.10</version>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
-            <groupId>org.checkerframework</groupId>
-            <artifactId>checker-qual</artifactId>
-            <version>${checker-qual.version}</version>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>17.0.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>${junit-jupiter.version}</version>
+            <version>5.5.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!--Style check-->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>${maven-checkstyle-plugin.version}</version>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.puppycrawl.tools</groupId>
-                        <artifactId>checkstyle</artifactId>
-                        <version>${checkstyle.version}</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>sun-validate</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <configuration>
-                            <configLocation>sun_checks.xml</configLocation>
-                            <suppressionsLocation>checkstyle/sun_suppressions.xml</suppressionsLocation>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>custom-validate</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <configuration>
-                            <configLocation>checkstyle/checkstyle.xml</configLocation>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!--Show if there are any updates for dependencies/plugins-->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>versions-maven-plugin</artifactId>
-                <version>${versions-maven-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>display-dependency-updates</goal>
-                            <goal>display-plugin-updates</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!--Force Maven and Java versions-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>${maven-enforcer-plugin.version}</version>
+                <version>3.0.0-M2</version>
                 <executions>
                     <execution>
                         <id>enforce-java</id>
@@ -154,10 +78,10 @@
                         <configuration>
                             <rules>
                                 <requireJavaVersion>
-                                    <version>${java-version}</version>
+                                    <version>11</version>
                                 </requireJavaVersion>
                                 <requireMavenVersion>
-                                    <version>[${maven-minimum.version},)</version>
+                                    <version>[3.3.9,)</version>
                                 </requireMavenVersion>
                             </rules>
                         </configuration>
@@ -165,158 +89,240 @@
                 </executions>
             </plugin>
 
-            <!--Bugs etc-->
-            <plugin>
-                <groupId>org.sonarsource.scanner.maven</groupId>
-                <artifactId>sonar-maven-plugin</artifactId>
-                <version>${sonar-maven-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>com.pvsstudio</groupId>
-                <artifactId>pvsstudio-maven-plugin</artifactId>
-                <version>${pvsstudio-maven-plugin.version}</version>
-                <configuration>
-                    <analyzer>
-                        <outputType>xml</outputType>
-                    </analyzer>
-                </configuration>
-            </plugin>
-
-            <!--Code coverage-->
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>${jacoco-maven-plugin.version}</version>
-            </plugin>
-
-            <!--Lock versions of standard plugins to suppress warnings-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>${maven-jar-plugin.version}</version>
+                <version>3.1.2</version>
                 <configuration>
                     <archive>
                         <addMavenDescriptor>false</addMavenDescriptor>
+                        <manifestEntries>
+                            <Automatic-Module-Name>io.github.sanyarnd.applocker</Automatic-Module-Name>
+                        </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>${maven-source-plugin.version}</version>
-                <configuration>
-                    <archive>
-                        <addMavenDescriptor>false</addMavenDescriptor>
-                    </archive>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>source-jar</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>${maven-javadoc-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>javadoc-jar</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
 
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven-surefire-plugin.version}</version>
+                <version>3.0.0-M3</version>
                 <configuration>
                     <trimStackTrace>false</trimStackTrace>
                     <useFile>false</useFile>
+                    <excludedGroups>integration</excludedGroups>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven-compiler-plugin.version}</version>
+                <version>3.8.1</version>
+                <configuration>
+                    <release>8</release>
+                    <useIncrementalCompilation>true</useIncrementalCompilation>
+                </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-clean-plugin</artifactId>
-                <version>${maven-clean-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <version>${maven-deploy-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-install-plugin</artifactId>
-                <version>${maven-install-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>${maven-resources-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <version>${maven-site-plugin.version}</version>
-            </plugin>
+
         </plugins>
     </build>
 
-    <scm>
-        <url>https://github.com/sanyarnd/applocker</url>
-        <connection>scm:git:git@github.com:sanyarnd/applocker.git</connection>
-        <developerConnection>scm:git:git@github.com:sanyarnd/applocker.git</developerConnection>
-    </scm>
-
-    <distributionManagement>
-        <repository>
-            <id>bintray-sanya-rnd-maven-projects</id>
-            <name>sanya-rnd-maven-projects</name>
-            <url>https://api.bintray.com/maven/sanya-rnd/maven-projects/applocker/;publish=1</url>
-        </repository>
-    </distributionManagement>
-
-    <repositories>
-        <repository>
-            <id>maven-central</id>
-            <name>Maven Dependency Repository</name>
-            <url>http://repo1.maven.org/maven2</url>
-        </repository>
-        <repository>
-            <id>jcenter</id>
-            <name>JCenter Dependency Repository</name>
-            <url>http://jcenter.bintray.com</url>
-        </repository>
-    </repositories>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>pvsstudio-maven-repository</id>
-            <name>PVS-Studio Plugin Repository</name>
-            <url>http://files.viva64.com/java/pvsstudio-maven-repository/</url>
-        </pluginRepository>
-        <pluginRepository>
-            <id>maven-central</id>
-            <name>Maven Plugin Repository</name>
-            <url>http://repo1.maven.org/maven2</url>
-        </pluginRepository>
-        <pluginRepository>
-            <id>jcenter</id>
-            <name>JCenter Plugin Repository</name>
-            <url>http://jcenter.bintray.com</url>
-        </pluginRepository>
-    </pluginRepositories>
+    <profiles>
+        <profile>
+            <id>logging</id>
+            <dependencies>
+                <dependency>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                    <version>1.3.0-alpha4</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>integration-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <version>3.0.0-M3</version>
+                        <configuration>
+                            <testFailureIgnore>true</testFailureIgnore>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>checkstyle</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-checkstyle-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <dependencies>
+                            <dependency>
+                                <groupId>com.puppycrawl.tools</groupId>
+                                <artifactId>checkstyle</artifactId>
+                                <version>8.25</version>
+                            </dependency>
+                        </dependencies>
+                        <executions>
+                            <execution>
+                                <id>validate</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <configuration>
+                                    <configLocation>checkstyle/checkstyle.xml</configLocation>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>create-javadoc-and-sources</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <archive>
+                                <addMavenDescriptor>false</addMavenDescriptor>
+                            </archive>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>source-jar</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.1.1</version>
+                        <configuration>
+                            <release>8</release>
+                            <source>1.8</source>
+                            <defaultVersion>${project.version}</defaultVersion>
+                            <sourcepath>target/generated-sources/delombok</sourcepath>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>javadoc-jar</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok-maven-plugin</artifactId>
+                        <version>1.18.8.1</version>
+                        <configuration>
+                            <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
+                            <addOutputDirectory>false</addOutputDirectory>
+                        </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>1.18.10</version>
+                            </dependency>
+                        </dependencies>
+                        <executions>
+                            <execution>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>delombok</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>with-coverage</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <version>0.8.4</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>report</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>analysis-plugins</id>
+            <properties>
+                <sonar.coverage.jacoco.xmlReportPaths>
+                    ${project.build.directory}/site/jacoco/jacoco.xml
+                </sonar.coverage.jacoco.xmlReportPaths>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>versions-maven-plugin</artifactId>
+                        <version>2.7</version>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>3.1.1</version>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonarsource.scanner.maven</groupId>
+                        <artifactId>sonar-maven-plugin</artifactId>
+                        <version>3.6.1.1688</version>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>deploy-bintray</id>
+            <distributionManagement>
+                <repository>
+                    <id>bintray-sanya-rnd-maven-projects</id>
+                    <name>sanya-rnd-maven-projects</name>
+                    <url>https://api.bintray.com/maven/sanya-rnd/maven-projects/applocker/;publish=1</url>
+                </repository>
+            </distributionManagement>
+        </profile>
+    </profiles>
 </project>

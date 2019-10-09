@@ -1,21 +1,8 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
-//
-//                     Copyright 2019 Alexander Biryukov
-//
-//     Licensed under the Apache License, Version 2.0 (the "License");
-//     you may not use this file except in compliance with the License.
-//     You may obtain a copy of the License at
-//
-//               http://www.apache.org/licenses/LICENSE-2.0
-//
-//     Unless required by applicable law or agreed to in writing, software
-//     distributed under the License is distributed on an "AS IS" BASIS,
-//     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//     See the License for the specific language governing permissions and
-//     limitations under the License.
-
 package io.github.sanyarnd.applocker;
+
+import lombok.ToString;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -27,54 +14,35 @@ import java.nio.file.Paths;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import lombok.ToString;
-
-import io.github.sanyarnd.applocker.exceptions.LockingBusyException;
-import io.github.sanyarnd.applocker.exceptions.LockingCommunicationException;
-import io.github.sanyarnd.applocker.exceptions.LockingException;
-import io.github.sanyarnd.applocker.exceptions.LockingFailedException;
-
 /**
- * Locker class provides methods for locking mechanism and
- * encapsulates socket-based message server for IPC.
- * <p>
- * No need to call {@link #unlock()} directly, method will be called once JVM is terminated.<br>
- * Feel free to call {@link #unlock()} any time if it is required by your application logic.
+ * Locker class provides methods for locking mechanism and encapsulates socket-based message server for IPC.
+ *
+ * <p>No need to call {@link #unlock()} directly, method will be called once JVM is terminated.<br> Feel free to call
+ * {@link #unlock()} any time if it is required by your application logic.
  *
  * @author Alexander Biryukov
  */
 @ToString(of = {"lockId", "appLock"})
 public final class AppLocker {
-    @NonNull
-    private final String lockId;
-    @NonNull
-    private final Lock gLock;
-    @NonNull
-    private final Lock appLock;
-    @NonNull
-    private final Path portFile;
-    @NonNull
-    private final Runtime runtime;
+    private static final String LOCK_NAME_PATTERN = ".%s.lock";
+    private final @NotNull String lockId;
+    private final @NotNull Lock gLock;
+    private final @NotNull Lock appLock;
+    private final @NotNull Path portFile;
+    private final @NotNull Runtime runtime;
     private final Thread shutdownHook;
-    @Nullable
-    private final Server<?, ?> server;
-    @NonNull
-    private final Runnable acquiredHandler;
-    @Nullable
-    private final BiConsumer<AppLocker, LockingBusyException> busyHandler;
-    @NonNull
-    private final Consumer<LockingException> failedHandler;
+    private final @Nullable Server<?, ?> server;
+    private final @NotNull Runnable acquiredHandler;
+    private final @Nullable BiConsumer<AppLocker, LockingBusyException> busyHandler;
+    private final @NotNull Consumer<LockingException> failedHandler;
 
-    private AppLocker(@NonNull final String nameId,
-                      @NonNull final Path lockPath,
-                      @NonNull final LockIdEncoder idEncoder,
-                      @Nullable final Server<?, ?> messageServer,
-                      @NonNull final Runnable onAcquire,
-                      @Nullable final BiConsumer<AppLocker, LockingBusyException> onBusy,
-                      @NonNull final Consumer<LockingException> onFail) {
+    private AppLocker(final @NotNull String nameId,
+                      final @NotNull Path lockPath,
+                      final @NotNull LockIdEncoder idEncoder,
+                      final @Nullable Server<?, ?> messageServer,
+                      final @NotNull Runnable onAcquire,
+                      final @Nullable BiConsumer<AppLocker, LockingBusyException> onBusy,
+                      final @NotNull Consumer<LockingException> onFail) {
         lockId = nameId;
         server = messageServer;
         acquiredHandler = onAcquire;
@@ -82,10 +50,10 @@ public final class AppLocker {
         failedHandler = onFail;
         final Path path = lockPath.toAbsolutePath();
 
-        gLock = new Lock(path.resolve(String.format(".%s.lock", idEncoder.encode("Unique global lock"))));
+        gLock = new Lock(path.resolve(String.format(LOCK_NAME_PATTERN, idEncoder.encode("Unique global lock"))));
 
         final String encodedId = idEncoder.encode(nameId);
-        appLock = new Lock(path.resolve(String.format(".%s.lock", encodedId)));
+        appLock = new Lock(path.resolve(String.format(LOCK_NAME_PATTERN, encodedId)));
         portFile = path.resolve(String.format(".%s_port.lock", encodedId));
 
         runtime = Runtime.getRuntime();
@@ -98,8 +66,7 @@ public final class AppLocker {
      * @param id AppLocker unique ID
      * @return builder
      */
-    @NonNull
-    public static Builder create(@NonNull final String id) {
+    public static @NotNull Builder create(final @NotNull String id) {
         return new Builder(id);
     }
 
@@ -128,7 +95,7 @@ public final class AppLocker {
             if (server != null) {
                 try {
                     server.start();
-                    int port = server.getPortBlocking();
+                    final int port = server.getPortBlocking();
                     writeAppLockPortToFile(portFile, port);
                 } catch (IOException ex) {
                     appLock.unlock();
@@ -144,7 +111,7 @@ public final class AppLocker {
         }
     }
 
-    private void handleLockBusyException(@NonNull final LockingBusyException ex) {
+    private void handleLockBusyException(final @NotNull LockingBusyException ex) {
         // if busy != null then prefer busy
         if (busyHandler != null) {
             try {
@@ -158,8 +125,7 @@ public final class AppLocker {
     }
 
     /**
-     * Unlock the lock.<br>
-     * Does nothing if lock is not locked.
+     * Unlock the lock.<br> Does nothing if lock is not locked.
      */
     public void unlock() {
         unlock(false);
@@ -187,6 +153,8 @@ public final class AppLocker {
     }
 
     /**
+     * Check if locker is busy.
+     *
      * @return true if locked, false otherwise
      */
     public boolean isLocked() {
@@ -202,20 +170,20 @@ public final class AppLocker {
      * @return the answer from AppLocker's message messageHandler
      * @throws LockingCommunicationException if there's a trouble communicating to other AppLocker instance
      */
-    @NonNull
-    public <I extends Serializable, O extends Serializable> O sendMessage(@NonNull final I message) {
+    public @NotNull <I extends Serializable, O extends Serializable> O sendMessage(final @NotNull I message) {
         try {
-            int port = getPortFromFile();
-            Client<I, O> client = new Client<>(port);
+            final int port = getPortFromFile();
+            final Client<I, O> client = new Client<>(port);
             return client.send(message);
         } catch (NoSuchFileException ex) {
-            throw new LockingCommunicationException("Unable to open port file, please check that message server is running");
+            throw new LockingCommunicationException(
+                    "Unable to open port file, please check that message server is running");
         } catch (IOException ex) {
             throw new LockingCommunicationException(ex);
         }
     }
 
-    private void writeAppLockPortToFile(@NonNull final Path portFilePath, final int portNumber) throws IOException {
+    private void writeAppLockPortToFile(final @NotNull Path portFilePath, final int portNumber) throws IOException {
         final int bytesInInt = 4;
         Files.write(portFilePath, ByteBuffer.allocate(bytesInInt).putInt(portNumber).array());
     }
@@ -230,106 +198,91 @@ public final class AppLocker {
      * @author Alexander Biryukov
      */
     public static final class Builder {
-        @NonNull
-        private final String id;
-        @NonNull
-        private Path path = Paths.get(".");
-        @NonNull
-        private LockIdEncoder encoder = new Sha1Encoder();
-        @Nullable
-        private MessageHandler<?, ?> messageHandler = null;
-        @NonNull
-        private Runnable acquiredHandler = () -> { };
-        @NonNull
-        private Consumer<LockingException> failedHandler = ex -> { throw ex; };
-        @Nullable
-        private BiConsumer<AppLocker, LockingBusyException> busyHandler = null;
+        private final @NotNull String id;
+        private @NotNull Path path = Paths.get(".");
+        private @NotNull LockIdEncoder encoder = new Sha1Encoder();
+        private @Nullable MessageHandler<?, ?> messageHandler;
+        private @NotNull Runnable acquiredHandler = () -> { };
+        private @NotNull Consumer<LockingException> failedHandler = ex -> {
+            throw ex;
+        };
+        private @Nullable BiConsumer<AppLocker, LockingBusyException> busyHandler;
 
-        public Builder(final String lockId) { id = lockId; }
+        public Builder(final String lockId) {
+            id = lockId;
+        }
 
         /**
-         * Sets the path where the lock file will be stored.<br>
-         * Default value is "."
+         * Sets the path where the lock file will be stored.<br> Default value is "."
          *
          * @param storePath storing path
          * @return builder
          */
-        @NonNull
-        public Builder setPath(@NonNull final Path storePath) {
+        public @NotNull Builder setPath(final @NotNull Path storePath) {
             path = storePath;
             return this;
         }
 
         /**
-         * Sets the message handler.<br>
-         * If not set, AppLocker won't support communication features.<br>
-         * Default value is null.
+         * Sets the message handler.<br> If not set, AppLocker won't support communication features.<br> Default value
+         * is null.
          *
          * @param handler message handler
          * @return builder
          */
-        @NonNull
-        public Builder setMessageHandler(@NonNull final MessageHandler<?, ?> handler) {
+        public @NotNull Builder setMessageHandler(final @NotNull MessageHandler<?, ?> handler) {
             messageHandler = handler;
             return this;
         }
 
         /**
-         * Sets the name encoder.<br>
-         * Encodes lock lockId to filesystem-friendly entry.<br>
-         * Default value is "SHA-1" encoder.
+         * Sets the name encoder.<br> Encodes lock lockId to filesystem-friendly entry.<br> Default value is "SHA-1"
+         * encoder.
          *
          * @param idEncoder name encoder
          * @return builder
          */
-        @NonNull
-        public Builder setIdEncoder(@NonNull final LockIdEncoder idEncoder) {
+        public @NotNull Builder setIdEncoder(final @NotNull LockIdEncoder idEncoder) {
             encoder = idEncoder;
             return this;
         }
 
         /**
-         * Defines a callback if locking was successful.<br>
-         * Default value is empty function.
+         * Defines a callback if locking was successful.<br> Default value is empty function.
          *
          * @param callback function to call after successful locking
          * @return builder
          */
-        @NonNull
-        public Builder onSuccess(@NonNull final Runnable callback) {
+        public @NotNull Builder onSuccess(final @NotNull Runnable callback) {
             acquiredHandler = callback;
             return this;
         }
 
         /**
-         * Defines the action for when the lock is already taken.<br>
-         * Default value is null.
+         * Defines the action for when the lock is already taken.<br> Default value is null.
          *
          * @param message message for the lock holder
          * @param handler answer processing function
          * @param <T>     answer type
          * @return builder
          */
-        @NonNull
-        public <T extends Serializable> Builder onBusy(@NonNull final Serializable message,
-                                                       @NonNull final Consumer<T> handler) {
+        public @NotNull <T extends Serializable> Builder onBusy(final @NotNull Serializable message,
+                                                                final @NotNull Consumer<T> handler) {
             busyHandler = (appLocker, ex) -> {
-                T answer = appLocker.sendMessage(message);
+                final T answer = appLocker.sendMessage(message);
                 handler.accept(answer);
             };
             return this;
         }
 
         /**
-         * Defines the action for when the lock is already taken.<br>
-         * Default value is null.
+         * Defines the action for when the lock is already taken.<br> Default value is null.
          *
          * @param message message for the lock holder
          * @param handler answer processing function
          * @return builder
          */
-        @NonNull
-        public Builder onBusy(@NonNull final Serializable message, @NonNull final Runnable handler) {
+        public @NotNull Builder onBusy(final @NotNull Serializable message, final @NotNull Runnable handler) {
             busyHandler = (appLocker, ignoredException) -> {
                 appLocker.sendMessage(message);
                 handler.run();
@@ -338,27 +291,25 @@ public final class AppLocker {
         }
 
         /**
-         * Defines the action for when locking is impossible.<br>
-         * Default value is identity function (re-throws exception).
+         * Defines the action for when locking is impossible.<br> Default value is identity function (re-throws
+         * exception).
          *
          * @param handler error processing function
          * @return builder
          */
-        @NonNull
-        public Builder onFail(@NonNull final Consumer<LockingException> handler) {
+        public @NotNull Builder onFail(final @NotNull Consumer<LockingException> handler) {
             failedHandler = handler;
             return this;
         }
 
         /**
-         * Defines the action for when locking is impossible.<br>
-         * Default value is identity function (re-throws exception).
+         * Defines the action for when locking is impossible.<br> Default value is identity function (re-throws
+         * exception).
          *
          * @param handler error processing function
          * @return builder
          */
-        @NonNull
-        public Builder onFail(@NonNull final Runnable handler) {
+        public @NotNull Builder onFail(final @NotNull Runnable handler) {
             failedHandler = ignoredException -> handler.run();
             return this;
         }
@@ -368,10 +319,10 @@ public final class AppLocker {
          *
          * @return AppLocker instance
          */
-        @NonNull
-        public AppLocker build() {
-            @SuppressWarnings("unchecked")
-            Server<?, ?> server = messageHandler != null ? new Server(messageHandler) : null;
+        public @NotNull AppLocker build() {
+            @SuppressWarnings("unchecked") final Server<?, ?> server = messageHandler != null
+                    ? new Server(messageHandler)
+                    : null;
 
             return new AppLocker(id, path, encoder, server, acquiredHandler, busyHandler, failedHandler);
         }
