@@ -1,6 +1,7 @@
 package io.github.sanyarnd.applocker;
 
 import lombok.ToString;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,6 +23,7 @@ import java.util.function.Consumer;
  *
  * @author Alexander Biryukov
  */
+@Slf4j
 @ToString(of = {"lockId", "appLock"})
 public final class AppLocker {
     private static final String LOCK_NAME_PATTERN = ".%s.lock";
@@ -99,7 +101,7 @@ public final class AppLocker {
                     writeAppLockPortToFile(portFile, port);
                 } catch (IOException ex) {
                     appLock.unlock();
-                    throw new LockingCommunicationException(ex);
+                    throw new LockingCommunicationException("Unable to communicate with server", ex);
                 }
             }
 
@@ -135,6 +137,7 @@ public final class AppLocker {
         try {
             gLock.loopLock();
             if (!internal) {
+                log.debug("Removing shutdown hook");
                 runtime.removeShutdownHook(shutdownHook);
             }
 
@@ -147,6 +150,7 @@ public final class AppLocker {
                 appLock.unlock();
             }
         } catch (IOException ignored) {
+            log.debug("Unable to delete {}", portFile);
         } finally {
             gLock.unlock();
         }
@@ -179,7 +183,7 @@ public final class AppLocker {
             throw new LockingCommunicationException(
                     "Unable to open port file, please check that message server is running");
         } catch (IOException ex) {
-            throw new LockingCommunicationException(ex);
+            throw new LockingCommunicationException("Unable to read port file", ex);
         }
     }
 
@@ -189,6 +193,7 @@ public final class AppLocker {
     }
 
     private int getPortFromFile() throws IOException {
+        log.debug("Reading port file {}", portFile);
         return ByteBuffer.wrap(Files.readAllBytes(portFile)).getInt();
     }
 
@@ -208,6 +213,11 @@ public final class AppLocker {
         };
         private @Nullable BiConsumer<AppLocker, LockingBusyException> busyHandler;
 
+        /**
+         * Create Application Locker builder.
+         *
+         * @param lockId lock id
+         */
         public Builder(final String lockId) {
             id = lockId;
         }

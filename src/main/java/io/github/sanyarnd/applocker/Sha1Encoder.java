@@ -14,11 +14,11 @@ import java.util.Formatter;
  */
 final class Sha1Encoder implements LockIdEncoder {
     @Override
-    public @NotNull String encode(final @NotNull String string) {
+    public @NotNull String encode(final @NotNull String inputString) {
         try {
             final MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
             sha1.reset();
-            sha1.update(string.getBytes(StandardCharsets.UTF_8));
+            sha1.update(inputString.getBytes(StandardCharsets.UTF_8));
 
             final byte[] bytes = sha1.digest();
             try (Formatter formatter = new Formatter()) {

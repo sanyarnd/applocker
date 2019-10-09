@@ -8,13 +8,14 @@ import org.jetbrains.annotations.NotNull;
  *
  * @author Alexander Biryukov
  */
+@FunctionalInterface
 public interface LockIdEncoder {
     /**
      * Encode string.
      *
-     * @param string input string
+     * @param inputString input string
      * @return encoded string
      */
     @NotNull
-    String encode(@NotNull String string);
+    String encode(@NotNull String inputString);
 }

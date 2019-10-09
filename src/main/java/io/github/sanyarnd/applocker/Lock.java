@@ -1,5 +1,6 @@
 package io.github.sanyarnd.applocker;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -9,6 +10,7 @@ import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
@@ -17,6 +19,7 @@ import java.nio.file.StandardOpenOption;
  *
  * @author Alexander Biryukov
  */
+@Slf4j
 final class Lock implements AutoCloseable {
     private final @NotNull Path file;
     private @Nullable FileChannel channel;
@@ -39,10 +42,12 @@ final class Lock implements AutoCloseable {
      * @throws LockingFailedException if any error occurred during the locking process (I/O exception)
      */
     void loopLock() {
+        log.debug("Trying to lock {} in loop", file);
         while (true) {
             try {
                 lock();
                 // if lock is succeeded -- return
+                log.debug("Successfully locked {} in loop", file);
                 return;
             } catch (LockingBusyException ignored) {
             }
@@ -57,18 +62,21 @@ final class Lock implements AutoCloseable {
      * @throws LockingBusyException   if lock is already taken by someone
      */
     void lock() {
+        log.debug("Locking {}", file);
         if (!Files.exists(file.getParent(), LinkOption.NOFOLLOW_LINKS)) {
             try {
                 Files.createDirectories(file.getParent());
             } catch (IOException ex) {
-                throw new LockingFailedException(ex);
+                log.debug("Failed at creating directory {}", file.getParent());
+                throw new LockingFailedException("Unable to create directory for locks", ex);
             }
         }
 
         try {
             channel = FileChannel.open(file,
                     StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
-            // we need to close channel in case we are unable to obtain FileLock
+            // we need nested try to close channel in case it's impossible to obtain FileLock
+            // and because #close throws IOException
             try {
                 fileLock = channel.tryLock();
                 if (fileLock == null) {
@@ -80,7 +88,7 @@ final class Lock implements AutoCloseable {
                 throw new LockingBusyException(ex);
             }
         } catch (IOException ex) {
-            throw new LockingFailedException(ex);
+            throw new LockingFailedException("Unable to open lock file channel", ex);
         }
     }
 
@@ -88,8 +96,7 @@ final class Lock implements AutoCloseable {
      * Unlock the lock.
      */
     void unlock() {
-        // these calls cannot fail fail under normal circumstances
-        // can't really imagine the case when it'll be left in half-valid state
+        log.debug("Unlocking {}", file);
         try {
             if (fileLock != null) {
                 fileLock.release();
@@ -102,7 +109,12 @@ final class Lock implements AutoCloseable {
             channel = null;
 
             Files.delete(file);
-        } catch (IOException ignored) {
+        } catch (NoSuchFileException ignored) {
+            // ignore if file is not here
+        } catch (IOException ex) {
+            // something very wrong goes here
+            log.error("An error during unlocking {}", file, ex);
+            throw new RuntimeException("Should never happen", ex);
         }
     }
 

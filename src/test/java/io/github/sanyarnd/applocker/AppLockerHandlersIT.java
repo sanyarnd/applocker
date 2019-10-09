@@ -1,11 +1,11 @@
 package io.github.sanyarnd.applocker;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-
-class AppLockerHandlersTest {
-
+@Tag("integration")
+class AppLockerHandlersIT {
     @Test
     void busy_handler_suppress_exception() {
         final AppLocker l1 = AppLocker.create("sameId").onBusy("asd", (ans) -> {}).setMessageHandler(e -> e).build();

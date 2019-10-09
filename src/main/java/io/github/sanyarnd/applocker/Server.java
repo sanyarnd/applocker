@@ -1,5 +1,6 @@
 package io.github.sanyarnd.applocker;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -8,6 +9,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.ExecutorService;
@@ -21,6 +24,7 @@ import java.util.concurrent.Future;
  * @param <O> response message type
  * @author Alexander Biryukov
  */
+@Slf4j
 final class Server<I extends Serializable, O extends Serializable> {
     private final @NotNull MessageHandler<I, O> messageHandler;
     private final @NotNull Runtime runtime;
@@ -32,10 +36,11 @@ final class Server<I extends Serializable, O extends Serializable> {
         messageHandler = handler;
         runtime = Runtime.getRuntime();
 
-        shutdownHook = new Thread(() -> stop(true), "Message server `%s` shutdownHook");
+        shutdownHook = new Thread(() -> stop(true), "AppLocker MessageServer shutdownHook");
     }
 
     void start() {
+        log.debug("Init message server");
         if (threadHandle != null) {
             throw new LockingCommunicationException("The server is already running");
         }
@@ -49,6 +54,7 @@ final class Server<I extends Serializable, O extends Serializable> {
         threadHandle = executor.submit(runnable);
 
         runtime.addShutdownHook(shutdownHook);
+        log.debug("Message server initialized");
     }
 
     void stop() {
@@ -56,6 +62,7 @@ final class Server<I extends Serializable, O extends Serializable> {
     }
 
     private void stop(final boolean internal) {
+        log.debug("Stopping message server");
         if (!internal) {
             runtime.removeShutdownHook(shutdownHook);
         }
@@ -65,6 +72,7 @@ final class Server<I extends Serializable, O extends Serializable> {
         }
         threadHandle = null;
         runnable = null;
+        log.debug("Message server stopped");
     }
 
     /**
@@ -76,12 +84,14 @@ final class Server<I extends Serializable, O extends Serializable> {
      *                                       call)
      */
     int getPort() {
+        log.debug("Requesting server port number");
         if (threadHandle != null && threadHandle.isDone()) {
             throw new LockingMessageServerException("Server is in exception state for some reason");
         }
         if (runnable == null || runnable.port == -1) {
             throw new LockingCommunicationException("Message server is not running");
         }
+        log.debug("Retrieved server port number: {}", runnable.port);
         return runnable.port;
     }
 
@@ -104,33 +114,48 @@ final class Server<I extends Serializable, O extends Serializable> {
         }
     }
 
-    public final class ServerLoop implements Runnable {
-        private int port = -1;
+    final class ServerLoop implements Runnable {
+        private volatile int port = -1;
 
         @Override
         public void run() {
+            log.debug("Opening message server port");
             // use socket channel, because it'll throw ClosedByInterruptException on interrupt
-            try (ServerSocketChannel socket = ServerSocketChannel.open()) {
-                socket.socket().setReuseAddress(true);
-                socket.socket().bind(new InetSocketAddress(0));
-                port = socket.socket().getLocalPort();
+            try (ServerSocketChannel socket = ServerSocketChannel.open();
+                 ServerSocket realSocket = socket.socket()) {
+                realSocket.setReuseAddress(true);
+                realSocket.bind(new InetSocketAddress(0));
+                port = realSocket.getLocalPort();
                 socket.configureBlocking(true);
+                log.info("Staring message server on localhost:{}", port);
 
                 while (!Thread.currentThread().isInterrupted()) {
                     try (SocketChannel channel = socket.accept();
-                         ObjectOutputStream oos = new ObjectOutputStream(channel.socket().getOutputStream());
-                         ObjectInputStream ois = new ObjectInputStream(channel.socket().getInputStream())) {
+                         Socket connSocket = channel.socket();
+                         ObjectOutputStream oos = new ObjectOutputStream(connSocket.getOutputStream());
+                         ObjectInputStream ois = new ObjectInputStream(connSocket.getInputStream())) {
+                        log.debug("New connection from localhost:{}", connSocket.getPort());
                         try {
                             @SuppressWarnings("unchecked") final I message = (I) ois.readObject();
-                            final O answer = messageHandler.handleMessage(message);
-                            oos.writeObject(answer);
-                        } catch (IOException | ClassNotFoundException ignored) {
+                            log.debug("Incoming message: {}", message);
+                            try {
+                                final O answer = messageHandler.handleMessage(message);
+                                log.debug("Calculated answer: {}", answer);
+                                oos.writeObject(answer);
+                            } catch (RuntimeException ex) {
+                                log.error("Error during processing message {}", message, ex);
+                            }
+                        } catch (IOException | ClassNotFoundException ex) {
                             // there's a failure during de-serialization or handling the message
                             // but we don't want to terminate the server
+                            log.error("Error during deserialization", ex);
                         }
                     }
                 }
-            } catch (IOException ignored) {
+            } catch (IOException ex) {
+                // something wrong happened with socket
+                log.error("Cannot initialize the socket", ex);
+                throw new RuntimeException(ex);
             }
         }
     }

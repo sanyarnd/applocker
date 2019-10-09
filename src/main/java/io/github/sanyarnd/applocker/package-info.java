@@ -1,5 +1,5 @@
 /**
- * Base package for AppLocker library.
+ * AppLocker library.
  *
  * @author Alexander Biryukov
  */

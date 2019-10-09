@@ -1,6 +1,7 @@
 package io.github.sanyarnd.applocker;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -9,7 +10,8 @@ import java.io.Serializable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-class AppLockerTest {
+@Tag("integration")
+class AppLockerIT {
     private static <T extends Serializable> MessageHandler<T, T> createEchoHandler() {
         return message -> message;
     }
