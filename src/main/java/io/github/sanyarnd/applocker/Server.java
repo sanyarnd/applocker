@@ -64,7 +64,11 @@ final class Server<I extends Serializable, O extends Serializable> {
     private void stop(final boolean internal) {
         log.debug("Stopping message server");
         if (!internal) {
-            runtime.removeShutdownHook(shutdownHook);
+            try {
+                runtime.removeShutdownHook(shutdownHook);
+            } catch (IllegalStateException e) {
+                log.debug("Cannot remove shutdown hook, shutdown already in process.");
+            }
         }
 
         if (threadHandle != null) {
