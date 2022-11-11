@@ -1,6 +1,6 @@
 # AppLocker
-[![Build Status](https://travis-ci.com/sanyarnd/applocker.svg?branch=master)](https://travis-ci.com/sanyarnd/applocker)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=io.github.sanyarnd%3Aapp-locker&metric=coverage)](https://sonarcloud.io/dashboard?id=io.github.sanyarnd%3Aapp-locker)
+![Build Status](https://github.com/sanyarnd/applocker/actions/workflows/build.yml/badge.svg)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=io.github.sanyarnd%3Aapp-locker&metric=coverage)](https://sonarcloud.io/summary/new_code?id=io.github.sanyarnd%3Aapp-locker)
 
 AppLocker is a small library which provides the often missing single instance functionality.
 
@@ -27,7 +27,7 @@ All methods are optional and have sane defaults.
 
 ```java
 AppLocker locker = AppLocker.create("lockID")
-    .setPath(Paths.get("."))                // where to store locks (default: ".")
+    .setPath(Paths.get(""))                // where to store locks (default: "")
     .setIdEncoder(this::encode)             // map `lockID` to filesystem name (default: "SHA-1")
     .setMessageHandler(msg -> process(msg)) // handle messages (default: NULL) 
 ```
@@ -52,9 +52,7 @@ AppLocker locker = AppLocker.create("lockID").build();
 try {
     locker.lock();
 } catch (LockingBusyException ex) {
-} catch (LockingCommunicationException ex) {
-} catch (LockingMessageServerException ex) {
-} catch (LockingFailedException ex) {
+} catch (LockingException ex) {
 }
 ```
 
@@ -66,7 +64,7 @@ Maven:
 <dependency> 
     <groupId>io.github.sanyarnd</groupId> 
     <artifactId>app-locker</artifactId>
-    <version>1.1.2</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
