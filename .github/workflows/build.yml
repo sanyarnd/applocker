@@ -1,0 +1,64 @@
+name: Build library
+
+on:
+  pull_request:
+    branches: [ master ]
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v5
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
+
+      - name: List keys
+        run: gpg -K
+
+      - name: Prepare JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Maven Build
+        run: mvn verify
+
+      - name: Publish Unit Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: |
+            target/surefire-reports/TEST-*.xml
+            target/failsafe-reports/TEST-*.xml
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Publish Sonar Results
+        run: mvn sonar:sonar
+
+      - name: Prepage Github Pages
+        run: cp -r target/apidocs gh-pages && cp README.md gh-pages/README.md && cp CHANGELOG.md gh-pages/CHANGELOG.md
+
+      - name: Deploy Github Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: gh-pages
+
+      - name: Upload to Maven Central
+        run: mvn deploy -DskipTests=true
