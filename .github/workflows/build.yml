@@ -38,28 +38,28 @@ jobs:
 
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v5
-        # if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v')
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
 
       - name: List keys
-        # if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v')
         run: gpg -K
 
       - name: Upload to Maven Central
-        # if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
         run: mvn deploy -Pdeploy -DskipTests=true
 
       - name: Prepage Github Pages
-        # if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v')
         run: cp -r target/apidocs gh-pages && cp README.md gh-pages/README.md && cp CHANGELOG.md gh-pages/CHANGELOG.md
 
       - name: Deploy Github Pages
-        # if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
