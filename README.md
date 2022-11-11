@@ -1,6 +1,6 @@
 # AppLocker
-[![Build Status](https://travis-ci.com/sanyarnd/applocker.svg?branch=master)](https://travis-ci.com/sanyarnd/applocker)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=io.github.sanyarnd%3Aapp-locker&metric=coverage)](https://sonarcloud.io/dashboard?id=io.github.sanyarnd%3Aapp-locker)
+![Build Status](https://github.com/sanyarnd/applocker/actions/workflows/build.yml/badge.svg)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=io.github.sanyarnd%3Aapp-locker&metric=coverage)](https://sonarcloud.io/summary/new_code?id=io.github.sanyarnd%3Aapp-locker)
 
 AppLocker is a small library which provides the often missing single instance functionality.
 
