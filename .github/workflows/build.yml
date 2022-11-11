@@ -22,6 +22,7 @@ jobs:
           passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
 
       - name: List keys
+        if: ${{ false }} # debug
         run: gpg -K
 
       - name: Prepare JDK
@@ -42,15 +43,15 @@ jobs:
             target/surefire-reports/TEST-*.xml
             target/failsafe-reports/TEST-*.xml
 
+      - name: Publish Sonar Results
+        run: mvn sonar:sonar -Dsonar.projectKey=io.github.sanyarnd:app-locker
+
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
-      - name: Publish Sonar Results
-        run: mvn sonar:sonar
-
       - name: Prepage Github Pages
         run: cp -r target/apidocs gh-pages && cp README.md gh-pages/README.md && cp CHANGELOG.md gh-pages/CHANGELOG.md
 
