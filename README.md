@@ -27,7 +27,7 @@ All methods are optional and have sane defaults.
 
 ```java
 AppLocker locker = AppLocker.create("lockID")
-    .setPath(Paths.get("."))                // where to store locks (default: ".")
+    .setPath(Paths.get(""))                // where to store locks (default: "")
     .setIdEncoder(this::encode)             // map `lockID` to filesystem name (default: "SHA-1")
     .setMessageHandler(msg -> process(msg)) // handle messages (default: NULL) 
 ```
@@ -52,9 +52,7 @@ AppLocker locker = AppLocker.create("lockID").build();
 try {
     locker.lock();
 } catch (LockingBusyException ex) {
-} catch (LockingCommunicationException ex) {
-} catch (LockingMessageServerException ex) {
-} catch (LockingFailedException ex) {
+} catch (LockingException ex) {
 }
 ```
 
@@ -66,7 +64,7 @@ Maven:
 <dependency> 
     <groupId>io.github.sanyarnd</groupId> 
     <artifactId>app-locker</artifactId>
-    <version>1.1.2</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 
