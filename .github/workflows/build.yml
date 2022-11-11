@@ -46,18 +46,6 @@ jobs:
             target/surefire-reports/TEST-*.xml
             target/failsafe-reports/TEST-*.xml
 
-      - name: Publish Sonar Results
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=io.github.sanyarnd:app-locker
-
-  deploy:
-    name: Deploy
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-
-    steps:
       - name: Prepage Github Pages
         run: cp -r target/apidocs gh-pages && cp README.md gh-pages/README.md && cp CHANGELOG.md gh-pages/CHANGELOG.md
 
@@ -67,5 +55,11 @@ jobs:
           branch: gh-pages
           folder: gh-pages
 
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
       - name: Upload to Maven Central
         run: mvn deploy -DskipTests=true

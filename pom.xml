@@ -36,7 +36,7 @@
         <jdk.version>17</jdk.version>
         <java.release>8</java.release>
 
-        <revision>1.2.0</revision>
+        <revision>1.2.0-SNAPSHOT</revision>
 
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
         <sonar.organization>sanyarnd-github</sonar.organization>
