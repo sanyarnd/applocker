@@ -52,7 +52,7 @@ jobs:
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-        run: mvn deploy -Pdeploy -DskipTests=true
+        run: mvn deploy:deploy -Pdeploy
 
       - name: Prepage Github Pages
         # if: startsWith(github.ref, 'refs/tags/v')
