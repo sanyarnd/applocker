@@ -38,9 +38,9 @@
 
         <revision>1.2.0</revision>
 
-        <sonar.coverage.jacoco.xmlReportPaths>
-            ${project.build.directory}/site/jacoco/jacoco.xml
-        </sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <sonar.organization>sanyarnd-github</sonar.organization>
+        <sonar.projectKey>io.github.sanyarnd:app-locker</sonar.projectKey>
 
         <slf4j.version>1.7.36</slf4j.version>
         <jetbrains-annotations.version>23.0.0</jetbrains-annotations.version>
