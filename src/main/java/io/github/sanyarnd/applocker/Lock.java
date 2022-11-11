@@ -1,9 +1,5 @@
 package io.github.sanyarnd.applocker;
 
-import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
@@ -12,94 +8,71 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import static java.lang.String.format;
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.READ;
+import static java.nio.file.StandardOpenOption.WRITE;
 
 /**
  * File-channel based lock.
  *
  * @author Alexander Biryukov
  */
-@Slf4j
-final class Lock implements AutoCloseable {
+public final class Lock implements AutoCloseable {
+    private static final Logger LOG = LoggerFactory.getLogger(Lock.class);
+    private static final int LOCK_SLEEP_MS = 10;
+
     private final @NotNull Path file;
     private @Nullable FileChannel channel;
     private @Nullable FileLock fileLock;
 
-    Lock(final @NotNull Path underlyingFile) {
-        file = underlyingFile.toAbsolutePath();
+    /**
+     * Create a lock.
+     *
+     * @param f lock file
+     */
+    public Lock(final @NotNull Path f) {
+        file = f.toAbsolutePath();
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         unlock();
     }
 
     /**
-     * Tries to acquire the lock and ignores any {@link LockingBusyException} during the process.<br> Be aware that it's
-     * easy to get a spin lock if the other Lock won't call {@link #unlock()}, that's why loopLock is used only for
-     * global lock acquiring.
+     * Tries to acquire the lock and ignores any {@link LockingBusyException} during the process.
+     * <br>
+     * Be aware that it's easy to get a spin lock if the other Lock won't call {@link #close()}.
      *
-     * @throws LockingFailedException if any error occurred during the locking process (I/O exception)
+     * @param timeoutMs timeout in milliseconds
+     * @throws LockingException lock exceeded timeout
      */
-    void loopLock() {
-        log.debug("Trying to lock {} in loop", file);
-        while (true) {
+    public synchronized void lock(final long timeoutMs) throws InterruptedException {
+        final long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - timeoutMs <= start) {
             try {
-                lock();
-                // if lock is succeeded -- return
-                log.debug("Successfully locked {} in loop", file);
+                tryLock();
                 return;
             } catch (LockingBusyException ignored) {
-            }
-            // we dont catch LockingFailedException, propagate it up to the stack
-        }
-    }
-
-    /**
-     * Attempt to lock {@link #file}.
-     *
-     * @throws LockingFailedException if any error occurred during the locking process (I/O exception)
-     * @throws LockingBusyException   if lock is already taken by someone
-     */
-    void lock() {
-        log.debug("Locking {}", file);
-        if (!Files.exists(file.getParent(), LinkOption.NOFOLLOW_LINKS)) {
-            try {
-                Files.createDirectories(file.getParent());
-            } catch (IOException ex) {
-                log.debug("Failed at creating directory {}", file.getParent());
-                throw new LockingFailedException("Unable to create directory for locks", ex);
+                Thread.sleep(LOCK_SLEEP_MS);
             }
         }
-
-        try {
-            channel = FileChannel.open(file,
-                    StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE);
-            // we need nested try to close channel in case it's impossible to obtain FileLock
-            // and because #close throws IOException
-            try {
-                fileLock = channel.tryLock();
-                if (fileLock == null) {
-                    throw new OverlappingFileLockException();
-                }
-            } catch (OverlappingFileLockException ex) {
-                channel.close();
-                channel = null;
-                throw new LockingBusyException(ex);
-            }
-        } catch (IOException ex) {
-            throw new LockingFailedException("Unable to open lock file channel", ex);
-        }
+        throw new LockingException(format("Lock attempt timeout=%dms exceeded", timeoutMs));
     }
 
     /**
      * Unlock the lock.
      */
-    void unlock() {
-        log.debug("Unlocking {}", file);
+    public void unlock() {
+        LOG.debug("Unlocking {}", file);
         try {
             if (fileLock != null) {
-                fileLock.release();
+                fileLock.close();
             }
             fileLock = null;
 
@@ -113,16 +86,62 @@ final class Lock implements AutoCloseable {
             // ignore if file is not here
         } catch (IOException ex) {
             // something very wrong goes here
-            log.error("An error during unlocking {}", file, ex);
-            throw new RuntimeException("Should never happen", ex);
+            LOG.error("An error during unlocking {}", file, ex);
+            throw new AssertionError("Should never happen", ex);
         }
     }
 
-    boolean isLocked() {
+    /**
+     * Attempt to lock {@link #file}.
+     *
+     * @throws LockingException     if any error occurred during the locking process (I/O exception)
+     * @throws LockingBusyException if a lock is already taken by someone
+     */
+    public synchronized void tryLock() {
+        LOG.debug("Locking {}", file);
+        createParentDirs();
+        try {
+            createChannelLock();
+        } catch (IOException ex) {
+            throw new LockingException("Unable to open lock file channel", ex);
+        }
+    }
+
+    private void createParentDirs() {
+        if (!Files.exists(file.getParent(), LinkOption.NOFOLLOW_LINKS)) {
+            try {
+                Files.createDirectories(file.getParent());
+            } catch (IOException ex) {
+                throw new LockingException(format("Unable to create parent directory '%s' for lock", file), ex);
+            }
+        }
+    }
+
+    private void createChannelLock() throws IOException {
+        channel = FileChannel.open(file, CREATE, READ, WRITE);
+        try {
+            fileLock = channel.tryLock(); // can throw or return null
+            if (fileLock == null) {
+                throw new OverlappingFileLockException();
+            }
+        } catch (OverlappingFileLockException ex) {
+            channel.close();
+            channel = null;
+            throw new LockingBusyException("Unable to acquire file lock", ex);
+        }
+    }
+
+    /**
+     * Check whether lock is currently in use.
+     *
+     * @return true if locked, false otherwise
+     */
+    public boolean isLocked() {
         return channel != null && fileLock != null && channel.isOpen() && fileLock.isValid();
     }
 
+    @Override
     public String toString() {
-        return "Lock(file=" + file + ", locked=" + isLocked() + ")";
+        return format("Lock{file=%s, locked=%s}", file, isLocked());
     }
 }

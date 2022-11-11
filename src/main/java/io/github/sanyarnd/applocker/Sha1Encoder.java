@@ -1,11 +1,10 @@
 package io.github.sanyarnd.applocker;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Formatter;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * SHA-1 string encoder.

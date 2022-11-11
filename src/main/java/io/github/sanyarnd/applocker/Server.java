@@ -1,9 +1,5 @@
 package io.github.sanyarnd.applocker;
 
-import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -16,6 +12,11 @@ import java.nio.channels.SocketChannel;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import static java.lang.String.format;
 
 /**
  * Socket-based server.
@@ -24,94 +25,91 @@ import java.util.concurrent.Future;
  * @param <O> response message type
  * @author Alexander Biryukov
  */
-@Slf4j
-final class Server<I extends Serializable, O extends Serializable> {
+final class Server<I extends Serializable, O extends Serializable> implements AutoCloseable {
+    private static final Logger LOG = LoggerFactory.getLogger(Server.class);
+    private static final int PORT_SLEEP_TIMEOUT_MS = 10;
+
     private final @NotNull MessageHandler<I, O> messageHandler;
-    private final @NotNull Runtime runtime;
-    private final @NotNull Thread shutdownHook;
+    private final @NotNull ExecutorService executor;
     private @Nullable Future<?> threadHandle;
     private @Nullable ServerLoop runnable;
 
     Server(final @NotNull MessageHandler<I, O> handler) {
         messageHandler = handler;
-        runtime = Runtime.getRuntime();
-
-        shutdownHook = new Thread(() -> stop(true), "AppLocker MessageServer shutdownHook");
-    }
-
-    void start() {
-        log.debug("Init message server");
-        if (threadHandle != null) {
-            throw new LockingCommunicationException("The server is already running");
-        }
-
-        final ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
+        executor = Executors.newSingleThreadExecutor(r -> {
             final Thread t = new Thread(r, "AppLocker MessageServer");
             t.setDaemon(true);
             return t;
         });
+    }
+
+    void start() {
+        LOG.debug("Init message server");
+        if (threadHandle != null) {
+            throw new LockingException("The server is already running");
+        }
+
         runnable = new ServerLoop();
         threadHandle = executor.submit(runnable);
 
-        runtime.addShutdownHook(shutdownHook);
-        log.debug("Message server initialized");
+        LOG.debug("Message server initialized");
     }
 
-    void stop() {
-        stop(false);
+    @Override
+    public void close() {
+        stop();
+        executor.shutdown();
     }
 
-    private void stop(final boolean internal) {
-        log.debug("Stopping message server");
-        if (!internal) {
-            runtime.removeShutdownHook(shutdownHook);
-        }
+    public void stop() {
+        LOG.debug("Stopping message server");
 
         if (threadHandle != null) {
             threadHandle.cancel(true);
         }
+
         threadHandle = null;
         runnable = null;
-        log.debug("Message server stopped");
+        LOG.debug("Message server stopped");
     }
 
     /**
      * Get server's socket port.
      *
      * @return port
-     * @throws LockingCommunicationException if message server is not running
-     * @throws LockingMessageServerException if server is in exception state (also possible race with {@link #stop()}
-     *                                       call)
+     * @throws LockingException if a message server is not running or server is in exception state
      */
-    int getPort() {
-        log.debug("Requesting server port number");
+    int tryGetPort() {
+        LOG.debug("Requesting server port number");
         if (threadHandle != null && threadHandle.isDone()) {
-            throw new LockingMessageServerException("Server is in exception state for some reason");
+            throw new LockingException("Server is in exception state for some reason");
         }
         if (runnable == null || runnable.port == -1) {
-            throw new LockingCommunicationException("Message server is not running");
+            throw new LockingException("Message server is not running");
         }
-        log.debug("Retrieved server port number: {}", runnable.port);
+        LOG.debug("Retrieved server port number: {}", runnable.port);
         return runnable.port;
     }
 
     /**
-     * Blocking version of {@link #getPort()}, ignores {@link LockingCommunicationException} and tries to retrieve the
-     * port number.<br> This method is useful for situations where you need to retrieve the port number right after the
-     * start
+     * Blocking version of {@link #tryGetPort()} ()}, ignores {@link LockingException} and tries to retrieve the
+     * port number.
+     * This method is useful for situations where you need to retrieve the port number right after the start
      *
+     * @param timeoutMs timeout in milliseconds
      * @return port number
-     * @throws LockingMessageServerException if server is in exception state (also possible race with {@link #stop()}
-     *                                       call)
+     * @throws LockingException if a message server is not running or server is in exception state
      */
-    int getPortBlocking() {
-        while (true) {
+    int getPort(final long timeoutMs) throws InterruptedException {
+        final long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - timeoutMs <= start) {
             try {
-                return getPort();
-            } catch (LockingCommunicationException ex) {
-                // ignore exception, wait until socket is open
+                return tryGetPort();
+            } catch (LockingException ignored) {
+                Thread.sleep(PORT_SLEEP_TIMEOUT_MS);
             }
         }
+        throw new LockingException(format("Lock attempt timeout=%dms exceeded", timeoutMs));
     }
 
     final class ServerLoop implements Runnable {
@@ -119,43 +117,48 @@ final class Server<I extends Serializable, O extends Serializable> {
 
         @Override
         public void run() {
-            log.debug("Opening message server port");
-            // use socket channel, because it'll throw ClosedByInterruptException on interrupt
+            LOG.debug("Opening message server port");
+            // use a socket channel, because it'll throw ClosedByInterruptException on interrupt
             try (ServerSocketChannel socket = ServerSocketChannel.open();
                  ServerSocket realSocket = socket.socket()) {
                 realSocket.setReuseAddress(true);
                 realSocket.bind(new InetSocketAddress(0));
                 port = realSocket.getLocalPort();
                 socket.configureBlocking(true);
-                log.info("Staring message server on localhost:{}", port);
+
+                LOG.info("Staring message server on localhost:{}", port);
 
                 while (!Thread.currentThread().isInterrupted()) {
-                    try (SocketChannel channel = socket.accept();
-                         Socket connSocket = channel.socket();
-                         ObjectOutputStream oos = new ObjectOutputStream(connSocket.getOutputStream());
-                         ObjectInputStream ois = new ObjectInputStream(connSocket.getInputStream())) {
-                        log.debug("New connection from localhost:{}", connSocket.getPort());
-                        try {
-                            @SuppressWarnings("unchecked") final I message = (I) ois.readObject();
-                            log.debug("Incoming message: {}", message);
-                            try {
-                                final O answer = messageHandler.handleMessage(message);
-                                log.debug("Calculated answer: {}", answer);
-                                oos.writeObject(answer);
-                            } catch (RuntimeException ex) {
-                                log.error("Error during processing message {}", message, ex);
-                            }
-                        } catch (IOException | ClassNotFoundException ex) {
-                            // there's a failure during de-serialization or handling the message
-                            // but we don't want to terminate the server
-                            log.error("Error during deserialization", ex);
-                        }
-                    }
+                    run0(socket);
                 }
             } catch (IOException ex) {
                 // something wrong happened with socket
-                log.error("Cannot initialize the socket", ex);
+                LOG.error("Cannot initialize the socket", ex);
                 throw new RuntimeException(ex);
+            }
+        }
+
+        private void run0(final ServerSocketChannel socket) throws IOException {
+            try (SocketChannel channel = socket.accept();
+                 Socket connSocket = channel.socket();
+                 ObjectOutputStream oos = new ObjectOutputStream(connSocket.getOutputStream());
+                 ObjectInputStream ois = new ObjectInputStream(connSocket.getInputStream())) {
+                LOG.debug("New connection from localhost:{}", connSocket.getPort());
+                try {
+                    @SuppressWarnings("unchecked") final I message = (I) ois.readObject();
+                    LOG.debug("Incoming message: {}", message);
+                    try {
+                        final O response = messageHandler.handleMessage(message);
+                        LOG.debug("Calculated response: {}", response);
+                        oos.writeObject(response);
+                    } catch (RuntimeException ex) {
+                        LOG.error("Error during processing message {}", message, ex);
+                    }
+                } catch (IOException | ClassNotFoundException ex) {
+                    // there's a failure during de-serialization or handling the message,
+                    // but we don't want to terminate the server
+                    LOG.error("Error during deserialization", ex);
+                }
             }
         }
     }

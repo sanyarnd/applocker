@@ -1,8 +1,7 @@
 package io.github.sanyarnd.applocker;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.io.Serializable;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Interface for the function that runs on the server side and handles all incoming messages.
