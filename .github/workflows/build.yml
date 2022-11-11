@@ -52,7 +52,7 @@ jobs:
         run: gpg -K
 
       - name: Upload to Maven Central
-        run: mvn deploy -DskipTests=true
+        run: mvn deploy -Pdeploy -DskipTests=true
 
       - name: Prepage Github Pages
         run: cp -r target/apidocs gh-pages && cp README.md gh-pages/README.md && cp CHANGELOG.md gh-pages/CHANGELOG.md
