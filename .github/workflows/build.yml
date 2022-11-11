@@ -26,7 +26,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvnw verify sonar:sonar
+        run: ./mvnw verify sonar:sonar
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
@@ -52,7 +52,7 @@ jobs:
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-        run: mvnw deploy -Pdeploy -DskipTests=true
+        run: ./mvnw deploy -Pdeploy -DskipTests=true
 
       - name: Prepage Github Pages
         # if: startsWith(github.ref, 'refs/tags/v')
