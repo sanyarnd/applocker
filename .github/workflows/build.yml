@@ -15,16 +15,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v5
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
-
-      - name: List keys
-        if: ${{ false }} # debug
-        run: gpg -K
-
       - name: Prepare JDK
         uses: actions/setup-java@v2
         with:
@@ -36,15 +26,33 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+        run: mvn verify sonar:sonar
 
-      - name: Publish Unit Test Results
+      - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
         if: always()
         with:
           files: |
             target/surefire-reports/TEST-*.xml
             target/failsafe-reports/TEST-*.xml
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    # if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v5
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
+
+      - name: List keys
+        run: gpg -K
+
+      - name: Upload to Maven Central
+        run: mvn deploy -DskipTests=true
 
       - name: Prepage Github Pages
         run: cp -r target/apidocs gh-pages && cp README.md gh-pages/README.md && cp CHANGELOG.md gh-pages/CHANGELOG.md
@@ -54,12 +62,3 @@ jobs:
         with:
           branch: gh-pages
           folder: gh-pages
-
-  deploy:
-    name: Deploy
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-
-    steps:
-      - name: Upload to Maven Central
-        run: mvn deploy -DskipTests=true
