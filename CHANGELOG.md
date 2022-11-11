@@ -1,5 +1,13 @@
+# 1.2.0
+- Simplify exception hierarchy
+- Add AutoClosable interface
+- Use correct initial value for Path
+- Add blocking timeout methods
+- Remove lombok
+- Better function naming
+
 # 1.1.2
-- Enable `SO_REUSEADDR` feature for client
+- Enable `SO_REUSEADDR` feature for a client
  
 # 1.1.1
 - Specify nullable annotations directly, 
@@ -42,4 +50,3 @@
 
 # 1.0
 - Initial commit
-

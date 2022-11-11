@@ -1,8 +1,10 @@
 <?xml version="1.0"?>
 <!DOCTYPE module PUBLIC
-        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
-        "https://checkstyle.org/dtds/configuration_1_3.dtd">
-
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!--
+    Checkstyle configuration
+-->
 <module name="Checker">
 
     <!-- https://checkstyle.org/property_types.html -->
@@ -71,21 +73,24 @@
     <module name="TreeWalker">
         <!-- https://checkstyle.org/config_javadoc.html -->
         <!--         Checks for Javadoc comments.       -->
-        <!--<module name="AtclauseOrder"/>-->
+        <!-- <module name="AtclauseOrder"/> -->
         <module name="InvalidJavadocPosition"/>
+        <module name="JavadocContentLocationCheck"/>
         <module name="JavadocMethod"/>
+        <module name="JavadocMissingLeadingAsteriskCheck"/>
+        <module name="JavadocMissingWhitespaceAfterAsterisk"/>
         <module name="JavadocParagraph"/>
         <module name="JavadocStyle">
             <property name="checkFirstSentence" value="false"/>
             <property name="checkEmptyJavadoc" value="true"/>
+            <property name="tokens"
+                      value="ANNOTATION_DEF, ANNOTATION_FIELD_DEF, CLASS_DEF, CTOR_DEF, ENUM_CONSTANT_DEF, ENUM_DEF, INTERFACE_DEF, METHOD_DEF, VARIABLE_DEF"/>
         </module>
         <module name="JavadocTagContinuationIndentation"/>
         <module name="JavadocType">
             <property name="scope" value="public"/>
         </module>
-        <module name="JavadocVariable">
-            <property name="scope" value="public"/>
-        </module>
+        <!-- <module name="JavadocVariable"/> -->
         <module name="MissingJavadocMethod"/>
         <module name="MissingJavadocPackage"/>
         <module name="MissingJavadocType"/>
@@ -120,6 +125,7 @@
         <module name="CatchParameterName"/>
         <module name="ClassTypeParameterName"/>
         <module name="ConstantName"/>
+        <module name="IllegalIdentifierName"/>
         <module name="InterfaceTypeParameterName"/>
         <module name="LambdaParameterName"/>
         <module name="LocalVariableName"/>
@@ -128,6 +134,9 @@
         <module name="MethodTypeParameterName"/>
         <module name="PackageName"/>
         <module name="ParameterName"/>
+        <module name="PatternVariableName"/>
+        <module name="RecordTypeParameterName"/>
+        <module name="RecordComponentName"/>
         <module name="StaticVariableName"/>
         <module name="TypeName"/>
 
@@ -135,15 +144,12 @@
         <!-- https://checkstyle.org/config_imports.html -->
         <!--            Checks for imports              -->
         <module name="AvoidStarImport"/>
-        <module name="AvoidStaticImport"/>
+        <!-- <module name="AvoidStaticImport"/> -->
         <!-- <module name="CustomImportOrder"/> -->
         <module name="IllegalImport"/> <!-- defaults to sun.* packages -->
         <!-- <module name="ImportControl"/> -->
         <module name="ImportOrder">
-            <property name="groups" value="*,javax,java"/>
-            <property name="ordered" value="true"/>
-            <property name="separated" value="true"/>
-            <property name="option" value="bottom"/>
+            <property name="option" value="under"/>
             <property name="sortStaticImportsAlphabetically" value="true"/>
         </module>
         <module name="RedundantImport"/>
@@ -156,10 +162,14 @@
             <property name="max" value="40"/>
         </module>
         <!-- <module name="ExecutableStatementCount"/> -->
+        <module name="LambdaBodyLength">
+            <property name="max" value="40"/>
+        </module>
         <!-- <module name="MethodCount"/> -->
         <module name="MethodLength"/>
         <module name="OuterTypeNumber"/>
         <module name="ParameterNumber"/>
+        <module name="RecordComponentNumber"/>
 
 
         <!-- https://checkstyle.org/config_whitespace.html -->
@@ -174,6 +184,7 @@
         <module name="NoLineWrap"/>
         <module name="NoWhitespaceAfter"/>
         <module name="NoWhitespaceBefore"/>
+        <module name="NoWhitespaceBeforeCaseDefaultColon"/>
         <module name="OperatorWrap"/>
         <module name="ParenPad"/>
         <module name="SeparatorWrap">
@@ -242,7 +253,9 @@
         <!-- https://checkstyle.org/config_coding.html -->
         <!--      Checks for common coding problems    -->
         <!-- <module name="ArrayTrailingComma"/> -->
+        <!-- <module name="AvoidDoubleBraceInitialization"/> -->
         <!-- <module name="AvoidInlineConditionals"/> -->
+        <module name="AvoidNoArgumentSuperConstructorCall"/>
         <module name="CovariantEquals"/>
         <module name="DeclarationOrder"/>
         <module name="DefaultComesLast"/>
@@ -265,6 +278,7 @@
         <!-- <module name="IllegalType"/> -->
         <module name="InnerAssignment"/>
         <module name="MagicNumber">
+            <property name="ignoreHashCodeMethod" value="true"/>
             <property name="ignoreAnnotation" value="true"/>
             <message key="magic.number"
                      value="Most likely the value ''{0}'' is a configuration one. You should move it to configuration file instead of source code."/>
@@ -278,23 +292,25 @@
         </module>
         <module name="MultipleVariableDeclarations"/>
         <module name="NestedForDepth">
-            <property name="max" value="3"/>
+            <property name="max" value="2"/>
         </module>
         <module name="NestedIfDepth">
-            <property name="max" value="3"/>
+            <property name="max" value="2"/>
         </module>
         <module name="NestedTryDepth">
-            <property name="max" value="3"/>
+            <property name="max" value="2"/>
         </module>
+        <module name="NoArrayTrailingComma"/>
+        <module name="NoEnumTrailingComma"/>
         <module name="NoClone"/>
         <module name="NoFinalizer"/>
         <module name="OneStatementPerLine"/>
-        <module name="OverloadMethodsDeclarationOrder"/>
+        <!--<module name="OverloadMethodsDeclarationOrder"/>-->
         <module name="PackageDeclaration"/>
         <module name="ParameterAssignment"/>
         <!-- <module name="RequireThis"/> -->
         <module name="ReturnCount">
-            <property name="max" value="3"/>
+            <property name="max" value="4"/>
         </module>
         <module name="SimplifyBooleanExpression"/>
         <module name="SimplifyBooleanReturn"/>
@@ -304,23 +320,22 @@
         <module name="UnnecessaryParentheses"/>
         <module name="UnnecessarySemicolonInEnumeration"/>
         <module name="UnnecessarySemicolonInTryWithResources"/>
-        <module name="VariableDeclarationUsageDistance">
-            <property name="allowedDistance" value="20"/>
-        </module>
-
+        <module name="UnnecessarySemicolonAfterOuterTypeDeclaration"/>
+        <module name="UnusedLocalVariable"/>
+        <module name="VariableDeclarationUsageDistance"/>
 
         <!-- https://checkstyle.org/config_design.html -->
         <!--       Checks for class design             -->
         <!-- <module name="DesignForExtension"/> -->
         <module name="FinalClass">
+            <property name="severity" value="warning"/>
             <message key="final.class"
                      value="Private ctor in non-final class. Inspect the code and make sure it's intended."/>
         </module>
         <module name="HideUtilityClassConstructor"/>
         <module name="SuppressionXpathSingleFilter">
             <property name="checks" value="HideUtilityClassConstructor"/>
-            <property name="query"
-                      value="//*[MODIFIERS//*[@text = 'UtilityClass' or @text='NoArgsConstructor' or @text = 'SpringBootApplication']]/descendant-or-self::node()"/>
+            <property name="query" value="//*[MODIFIERS//*[@text = 'UtilityClass' or @text='NoArgsConstructor' or @text = 'SpringBootApplication']]/descendant-or-self::node()"/>
         </module>
         <module name="InnerTypeLast"/>
         <module name="InterfaceIsType"/>
@@ -337,10 +352,11 @@
         <!-- <module name="CommentsIndentation"/> -->
         <!-- <module name="DescendantToken"/> -->
         <module name="FinalParameters"/>
+        <module name="NoCodeInFile"/>
 
         <!-- https://github.com/checkstyle/checkstyle/issues/3122 -->
         <!-- https://github.com/checkstyle/checkstyle/issues/3342 -->
-        <!-- this module is broken for a long time -->
+        <!-- this module is broken for a long time. I'm not sure if we should use it -->
         <!-- <module name="Indentation"/> -->
 
         <!-- <module name="OrderedProperties"/> -->
@@ -349,7 +365,7 @@
             <property name="format" value="(TODO)|(FIXME)"/>
             <message key="todo.match" value="Do not use TODO comments, create tickets instead."/>
         </module>
-        <module name="TrailingComment"/>
+        <!-- <module name="TrailingComment"/> -->
         <module name="UncommentedMain"/>
         <module name="UpperEll"/>
 
@@ -371,12 +387,17 @@
         <module name="RegexpSinglelineJava">
             <property name="format" value="\.printStackTrace"/>
             <property name="ignoreComments" value="true"/>
-            <property name="message" value="Using printStackTrace is a bad practice."/>
+            <property name="message" value="Using printStackTrace is a bad practice. Use a logger instead."/>
         </module>
         <module name="RegexpSinglelineJava">
             <property name="format" value="System\.out\.print"/>
             <property name="ignoreComments" value="true"/>
-            <property name="message" value="Using System.out for logging is a bad practice."/>
+            <property name="message" value="Using System.out for logging is a bad practice. Use a logger instead."/>
+        </module>
+        <module name="RegexpSinglelineJava">
+            <property name="format" value="javax\.annotation\.Nonnull|javax\.annotation\.Nullable|javax\.annotation\.ParametersAreNonnullByDefault|javax\.annotation\.ParametersAreNullableByDefault|org\.springframework\.lang\.Nullable|org\.springframework\.lang\.NonNull|org\.springframework\.lang\.NonNullApi|org\.springframework\.lang\.NonNullFields|edu\.umd\.cs\.findbugs\.annotations\.Nullable|edu\.umd\.cs\.findbugs\.annotations\.NonNull"/>
+            <property name="ignoreComments" value="true"/>
+            <property name="message" value="Use org.jetbrains.annotations.* for nullability."/>
         </module>
 
 

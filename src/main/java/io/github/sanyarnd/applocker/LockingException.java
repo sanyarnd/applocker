@@ -1,23 +1,22 @@
 package io.github.sanyarnd.applocker;
 
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Superclass of all locking exceptions.
+ * The Exception indicates that there was a failure (most probably I/O) during acquiring the lock.
  *
  * @author Alexander Biryukov
  */
 public class LockingException extends RuntimeException {
-    LockingException(final @Nullable String message, final @NotNull Throwable cause) {
+    LockingException(final @Nullable String message, final @Nullable Throwable cause) {
         super(message, cause);
     }
 
-    LockingException(final @NotNull Throwable cause) {
+    LockingException(final @Nullable Throwable cause) {
         super(cause);
     }
 
-    LockingException(final @NotNull String message) {
+    LockingException(final @Nullable String message) {
         super(message);
     }
 }
