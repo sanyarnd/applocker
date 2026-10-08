@@ -13,7 +13,6 @@ import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.concurrent.TimeUnit;
 import org.jspecify.annotations.Nullable;
 
 /// File-channel based lock.
@@ -22,9 +21,8 @@ import org.jspecify.annotations.Nullable;
 /// name while the deleted one is still locked.
 ///
 /// @author Alexander Biryukov
-public final class Lock implements AutoCloseable {
+final class Lock implements AutoCloseable {
     private static final Logger LOG = System.getLogger(Lock.class.getName());
-    private static final long LOCK_SLEEP_MS = 10;
 
     private final Path file;
     private @Nullable FileChannel channel;
@@ -33,7 +31,7 @@ public final class Lock implements AutoCloseable {
     /// Create a lock.
     ///
     /// @param f lock file
-    public Lock(final Path f) {
+    Lock(final Path f) {
         file = f.toAbsolutePath();
     }
 
@@ -42,33 +40,10 @@ public final class Lock implements AutoCloseable {
         unlock();
     }
 
-    /// Tries to acquire the lock and ignores any [LockingBusyException] during the process.
-    ///
-    /// Be aware that it's easy to get a spin lock if the other Lock won't call [#close()].
-    ///
-    /// @param timeoutMs timeout in milliseconds
-    /// @throws LockingException lock exceeded timeout
-    /// @throws InterruptedException if the thread was interrupted while waiting for the lock
-    public synchronized void lock(final long timeoutMs) throws InterruptedException {
-        final long start = System.nanoTime();
-        final long timeoutNs = TimeUnit.MILLISECONDS.toNanos(timeoutMs);
-        while (true) {
-            try {
-                tryLock();
-                return;
-            } catch (LockingBusyException ex) {
-                if (System.nanoTime() - start >= timeoutNs) {
-                    throw new LockingException(format("Lock attempt timeout=%dms exceeded", timeoutMs), ex);
-                }
-                Thread.sleep(LOCK_SLEEP_MS);
-            }
-        }
-    }
-
     /// Unlock the lock.
     ///
     /// Does nothing if the lock is not locked.
-    public synchronized void unlock() {
+    synchronized void unlock() {
         final FileChannel ch = channel;
         channel = null;
         fileLock = null;
@@ -87,7 +62,7 @@ public final class Lock implements AutoCloseable {
     ///
     /// @throws LockingException if any error occurred during the locking process (I/O exception)
     /// @throws LockingBusyException if a lock is already taken by someone
-    public synchronized void tryLock() {
+    synchronized void tryLock() {
         if (isLocked()) {
             return;
         }
@@ -145,7 +120,7 @@ public final class Lock implements AutoCloseable {
     /// Check whether lock is currently in use.
     ///
     /// @return true if locked, false otherwise
-    public synchronized boolean isLocked() {
+    synchronized boolean isLocked() {
         return channel != null && fileLock != null && channel.isOpen() && fileLock.isValid();
     }
 

@@ -12,10 +12,6 @@ public class LockingException extends RuntimeException {
         super(message, cause);
     }
 
-    LockingException(final @Nullable Throwable cause) {
-        super(cause);
-    }
-
     LockingException(final @Nullable String message) {
         super(message);
     }

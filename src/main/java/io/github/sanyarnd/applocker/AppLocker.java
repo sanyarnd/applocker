@@ -236,10 +236,7 @@ public final class AppLocker implements AutoCloseable {
         };
         private @Nullable BiConsumer<AppLocker, LockingBusyException> busyHandler;
 
-        /// Create Application Locker builder.
-        ///
-        /// @param lockId lock id
-        public Builder(final String lockId) {
+        private Builder(final String lockId) {
             id = lockId;
         }
 
