@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import org.instancio.Instancio;
 import org.instancio.junit.Given;
 import org.instancio.junit.InstancioExtension;
@@ -38,8 +37,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @Timeout(value = 60, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
 @ExtendWith({MockitoExtension.class, InstancioExtension.class})
 class ServerClientTest {
-    private static final long PORT_TIMEOUT_MS = 5_000;
-
     private final List<Server<?, ?>> servers = new ArrayList<>();
 
     @Mock
@@ -52,16 +49,14 @@ class ServerClientTest {
         servers.forEach(Server::close);
     }
 
-    private <I extends Serializable, O extends Serializable> int startServer(final MessageHandler<I, O> h)
-            throws InterruptedException {
+    private <I extends Serializable, O extends Serializable> int startServer(final MessageHandler<I, O> h) {
         final Server<I, O> server = new Server<>(h);
         servers.add(server);
-        server.start();
-        return server.getPort(PORT_TIMEOUT_MS);
+        return server.start();
     }
 
     @RepeatedTest(10)
-    void echoesStrings(@Given final String message) throws InterruptedException {
+    void echoesStrings(@Given final String message) {
         final int port = startServer((MessageHandler<String, String>) m -> m);
 
         final String answer = new Client<String, String>(port).send(message);
@@ -70,7 +65,7 @@ class ServerClientTest {
     }
 
     @Test
-    void echoesComplexObjects() throws InterruptedException {
+    void echoesComplexObjects() {
         final Payload payload = Instancio.create(Payload.class);
         final int port = startServer((MessageHandler<Payload, Payload>) m -> m);
 
@@ -80,7 +75,7 @@ class ServerClientTest {
     }
 
     @Test
-    void passesMessageToHandlerAndReturnsItsAnswer() throws InterruptedException {
+    void passesMessageToHandlerAndReturnsItsAnswer() {
         when(handler.handleMessage("ping")).thenReturn("pong");
         final int port = startServer(handler);
 
@@ -89,7 +84,7 @@ class ServerClientTest {
     }
 
     @Test
-    void servesManyClientsSequentially() throws InterruptedException {
+    void servesManyClientsSequentially() {
         final int port = startServer((MessageHandler<Integer, Integer>) m -> m * 2);
 
         for (int i = 0; i < 20; ++i) {
@@ -98,7 +93,7 @@ class ServerClientTest {
     }
 
     @Test
-    void handlerExceptionIsReportedToClientAndServerSurvives() throws InterruptedException {
+    void handlerExceptionIsReportedToClientAndServerSurvives() {
         when(handler.handleMessage(any()))
                 .thenThrow(new IllegalArgumentException("boom"))
                 .thenReturn("ok");
@@ -110,7 +105,7 @@ class ServerClientTest {
     }
 
     @Test
-    void wrongMessageTypeIsReportedToClientAndServerSurvives() throws InterruptedException {
+    void wrongMessageTypeIsReportedToClientAndServerSurvives() {
         final MessageHandler<String, String> stringHandler = m -> m.toUpperCase(Locale.ROOT);
         final int port = startServer(stringHandler);
 
@@ -195,23 +190,23 @@ class ServerClientTest {
         final Server<String, String> server = new Server<>(handler);
         servers.add(server);
 
-        assertThatThrownBy(server::tryGetPort)
+        assertThatThrownBy(server::getPort)
                 .isExactlyInstanceOf(LockingException.class)
                 .hasMessageContaining("not running");
     }
 
     @Test
-    void getPortTimesOutIfServerIsNotStarted() {
+    void startReturnsPort() {
         final Server<String, String> server = new Server<>(handler);
         servers.add(server);
 
-        assertThatThrownBy(() -> server.getPort(50))
-                .isExactlyInstanceOf(LockingException.class)
-                .hasMessageContaining("timeout=50ms");
+        final int port = server.start();
+
+        assertThat(port).isPositive().isEqualTo(server.getPort());
     }
 
     @Test
-    void startTwiceFails() throws InterruptedException {
+    void startTwiceFails() {
         final Server<String, String> server = new Server<>(handler);
         servers.add(server);
         server.start();
@@ -223,37 +218,26 @@ class ServerClientTest {
     void stopClosesServerSocket() throws Exception {
         final Server<String, String> server = new Server<>(handler);
         servers.add(server);
-        server.start();
-        final int port = server.getPort(PORT_TIMEOUT_MS);
+        final int port = server.start();
 
         server.stop();
 
-        assertThatThrownBy(server::tryGetPort).isExactlyInstanceOf(LockingException.class);
-        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-        while (true) {
-            try {
-                new Client<String, String>(port).send("ping");
-            } catch (LockingException ex) {
-                break;
-            }
-            assertThat(System.nanoTime()).isLessThan(deadline);
-            Thread.sleep(10);
-        }
+        assertThatThrownBy(server::getPort).isExactlyInstanceOf(LockingException.class);
+        assertThatThrownBy(() -> new Client<String, String>(port).send("ping"))
+                .isExactlyInstanceOf(LockingException.class);
     }
 
     @Test
-    void canBeRestarted() throws InterruptedException {
+    void canBeRestarted() {
         when(handler.handleMessage(any())).thenReturn("ok");
         final Server<String, String> server = new Server<>(handler);
         servers.add(server);
 
         for (int i = 0; i < 3; ++i) {
-            server.start();
-            final int port = server.getPort(PORT_TIMEOUT_MS);
-            assertThat(port).isPositive();
+            final int port = server.start();
             assertThat(new Client<String, String>(port).send("ping")).isEqualTo("ok");
             server.stop();
-            assertThatThrownBy(server::tryGetPort).isExactlyInstanceOf(LockingException.class);
+            assertThatThrownBy(server::getPort).isExactlyInstanceOf(LockingException.class);
         }
         verify(handler, timeout(1000).times(3)).handleMessage("ping");
     }

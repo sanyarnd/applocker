@@ -34,7 +34,7 @@ class AppLockerTest {
     private final List<AppLocker> lockers = new ArrayList<>();
 
     @AfterEach
-    void unlockAll() throws InterruptedException {
+    void unlockAll() {
         for (AppLocker locker : lockers) {
             locker.unlock();
         }
@@ -68,7 +68,7 @@ class AppLockerTest {
     }
 
     @Test
-    void lockAcquiresLock() throws InterruptedException {
+    void lockAcquiresLock() {
         final AppLocker locker = locker(ID);
 
         locker.lock();
@@ -77,7 +77,7 @@ class AppLockerTest {
     }
 
     @Test
-    void lockIsReentrant() throws InterruptedException {
+    void lockIsReentrant() {
         final AppLocker locker = locker(ID);
 
         locker.lock();
@@ -87,7 +87,7 @@ class AppLockerTest {
     }
 
     @Test
-    void unlockReleasesLock() throws InterruptedException {
+    void unlockReleasesLock() {
         final AppLocker locker = locker(ID);
         locker.lock();
 
@@ -97,8 +97,7 @@ class AppLockerTest {
     }
 
     @Test
-    @SuppressWarnings("try")
-    void closeReleasesLock() throws Exception {
+    void closeReleasesLock() {
         final AppLocker locker = locker(ID);
         try (AppLocker l = locker) {
             l.lock();
@@ -113,7 +112,7 @@ class AppLockerTest {
     }
 
     @Test
-    void canLockAndUnlockManyTimes() throws InterruptedException {
+    void canLockAndUnlockManyTimes() {
         final AppLocker locker = locker(ID);
 
         for (int i = 0; i < 5; ++i) {
@@ -125,7 +124,7 @@ class AppLockerTest {
     }
 
     @Test
-    void secondLockerWithSameIdIsBusy() throws InterruptedException {
+    void secondLockerWithSameIdIsBusy() {
         final AppLocker first = locker(ID);
         final AppLocker second = locker(ID);
         first.lock();
@@ -136,7 +135,7 @@ class AppLockerTest {
     }
 
     @Test
-    void lockCanBeTakenOverAfterUnlock() throws InterruptedException {
+    void lockCanBeTakenOverAfterUnlock() {
         final AppLocker first = locker(ID);
         final AppLocker second = locker(ID);
         first.lock();
@@ -148,8 +147,7 @@ class AppLockerTest {
     }
 
     @RepeatedTest(10)
-    void lockersWithDifferentIdsAreIndependent(@Given final String firstId, @Given final String secondId)
-            throws InterruptedException {
+    void lockersWithDifferentIdsAreIndependent(@Given final String firstId, @Given final String secondId) {
         final AppLocker first = locker(firstId);
         final AppLocker second = locker(secondId + "-other");
 
@@ -161,7 +159,7 @@ class AppLockerTest {
     }
 
     @Test
-    void lockersInDifferentDirectoriesAreIndependent() throws InterruptedException, IOException {
+    void lockersInDifferentDirectoriesAreIndependent() throws IOException {
         final AppLocker first = locker(ID);
         final AppLocker second = register(AppLocker.create(ID)
                 .setPath(Files.createDirectory(tempDir.resolve("other")))
@@ -175,7 +173,7 @@ class AppLockerTest {
     }
 
     @Test
-    void usesCustomIdEncoder() throws InterruptedException {
+    void usesCustomIdEncoder() {
         final LockIdEncoder encoder = mock(LockIdEncoder.class);
         when(encoder.encode(anyString()))
                 .thenAnswer(inv -> "custom-" + inv.getArgument(0, String.class).length());
@@ -197,7 +195,7 @@ class AppLockerTest {
     }
 
     @Test
-    void createsLockDirectory() throws InterruptedException {
+    void createsLockDirectory() {
         final Path dir = tempDir.resolve("nested").resolve("dir");
         final AppLocker locker = register(AppLocker.create(ID).setPath(dir).build());
 
@@ -207,7 +205,7 @@ class AppLockerTest {
     }
 
     @Test
-    void sendsMessageToSelf() throws InterruptedException {
+    void sendsMessageToSelf() {
         final AppLocker locker = echoLocker(ID);
         locker.lock();
 
@@ -217,7 +215,7 @@ class AppLockerTest {
     }
 
     @RepeatedTest(10)
-    void sendsMessageToLockOwner(@Given final String message) throws InterruptedException {
+    void sendsMessageToLockOwner(@Given final String message) {
         final AppLocker owner = echoLocker(ID);
         final AppLocker other = locker(ID);
         owner.lock();
@@ -237,7 +235,7 @@ class AppLockerTest {
     }
 
     @Test
-    void sendMessageFailsIfOwnerHasNoMessageHandler() throws InterruptedException {
+    void sendMessageFailsIfOwnerHasNoMessageHandler() {
         final AppLocker owner = locker(ID);
         owner.lock();
 
@@ -263,7 +261,7 @@ class AppLockerTest {
     }
 
     @Test
-    void unlockRemovesPortFile() throws InterruptedException {
+    void unlockRemovesPortFile() {
         final AppLocker locker = echoLocker(ID);
         locker.lock();
         assertThat(portFile(ID)).exists();
@@ -274,7 +272,7 @@ class AppLockerTest {
     }
 
     @Test
-    void unlockByNonOwnerDoesNotBreakOwner() throws InterruptedException {
+    void unlockByNonOwnerDoesNotBreakOwner() {
         final AppLocker owner = echoLocker(ID);
         final AppLocker other = register(builder(ID)
                 .setMessageHandler((MessageHandler<String, String>) m -> m)
@@ -291,7 +289,7 @@ class AppLockerTest {
     }
 
     @Test
-    void messagesAreRoutedToNewOwnerAfterTakeover() throws InterruptedException {
+    void messagesAreRoutedToNewOwnerAfterTakeover() {
         final AppLocker first = register(builder(ID)
                 .setMessageHandler((MessageHandler<String, String>) m -> "first")
                 .build());
@@ -308,7 +306,7 @@ class AppLockerTest {
     }
 
     @Test
-    void failedServerStartReleasesLock() throws InterruptedException, IOException {
+    void failedServerStartReleasesLock() throws IOException {
         // the port file cannot replace a non-empty directory
         Files.createFile(Files.createDirectory(portFile(ID)).resolve("blocker"));
         final AppLocker locker = echoLocker(ID);

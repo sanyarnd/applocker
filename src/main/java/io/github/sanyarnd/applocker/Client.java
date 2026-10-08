@@ -12,13 +12,11 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 
-/**
- * Client who can communicate with {@link Server} object over the loopback interface.
- *
- * @param <I> send message type
- * @param <O> receive message type
- * @author Alexander Biryukov
- */
+/// Client who can communicate with [Server] object over the loopback interface.
+///
+/// @param <I> send message type
+/// @param <O> receive message type
+/// @author Alexander Biryukov
 final class Client<I extends Serializable, O extends Serializable> {
     private static final Logger LOG = System.getLogger(Client.class.getName());
     private static final int CONNECT_TIMEOUT_MS = 5_000;

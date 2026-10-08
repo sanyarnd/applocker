@@ -24,9 +24,9 @@ jobs:
         test-java: [ '17', '21', '25' ]
         include:
           - os: windows-latest
-            test-java: '21'
+            test-java: '25'
           - os: macos-latest
-            test-java: '21'
+            test-java: '25'
 
     steps:
       - name: Checkout
@@ -39,7 +39,7 @@ jobs:
           # the last one becomes JAVA_HOME
           java-version: |
             ${{ matrix.test-java }}
-            21
+            25
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
@@ -70,7 +70,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5

@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 
-/** Verifies locking and messaging between two real JVM processes. */
+/// Verifies locking and messaging between two real JVM processes.
 @Timeout(value = 60, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
 class CrossProcessTest {
     private static final String ID = "cross-process";

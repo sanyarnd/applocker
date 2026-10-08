@@ -4,11 +4,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-/**
- * SHA-1 string encoder.
- *
- * @author Alexander Biryukov
- */
+/// SHA-1 string encoder.
+///
+/// @author Alexander Biryukov
 final class Sha1Encoder implements LockIdEncoder {
     private static final char[] HEX = "0123456789abcdef".toCharArray();
 
