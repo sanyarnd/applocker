@@ -1,55 +1,58 @@
 package io.github.sanyarnd.applocker;
 
+import static java.lang.String.format;
+
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import static java.lang.String.format;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The Locker class provides methods for a locking mechanism and encapsulates socket-based message server for IPC.
  *
- * <p>No need to call {@link #unlock()} directly, method will be called once JVM is terminated.
+ * <p>No need to call {@link #unlock()} directly: the operating system releases file locks once the JVM is terminated.
  * Feel free to call {@link #unlock()} any time if it is required by your application logic.
  *
  * @author Alexander Biryukov
  */
+// TODO: close() can throw InterruptedException, to be revisited together with the API changes
+@SuppressWarnings("try")
 public final class AppLocker implements AutoCloseable {
-    private static final Logger LOG = LoggerFactory.getLogger(AppLocker.class);
+    private static final Logger LOG = System.getLogger(AppLocker.class.getName());
 
     private static final String UNIQUE_GLOBAL_LOCK = "Unique global lock";
     private static final String LOCK_PORT_PATTERN = ".%s_port.lock";
     private static final String LOCK_NAME_PATTERN = ".%s.lock";
     private static final int LOCK_TIMEOUT_MS = 1000;
     private static final int PORT_TIMEOUT_MS = 1000;
+    private static final int MAX_PORT = 0xFFFF;
 
-    private final @NotNull String lockId;
-    private final @NotNull Lock gLock;
-    private final @NotNull Lock appLock;
-    private final @NotNull Path portFile;
+    private final String lockId;
+    private final Lock gLock;
+    private final Lock appLock;
+    private final Path portFile;
     private final @Nullable Server<?, ?> server;
-    private final @NotNull Runnable acquiredHandler;
+    private final Runnable acquiredHandler;
     private final @Nullable BiConsumer<AppLocker, LockingBusyException> busyHandler;
-    private final @NotNull Consumer<LockingException> failedHandler;
+    private final Consumer<LockingException> failedHandler;
 
     private AppLocker(
-        final @NotNull String nameId,
-        final @NotNull Path lockPath,
-        final @NotNull LockIdEncoder idEncoder,
-        final @Nullable Server<?, ?> messageServer,
-        final @NotNull Runnable onAcquire,
-        final @Nullable BiConsumer<AppLocker, LockingBusyException> onBusy,
-        final @NotNull Consumer<LockingException> onFail
-    ) {
+            final String nameId,
+            final Path lockPath,
+            final LockIdEncoder idEncoder,
+            final @Nullable Server<?, ?> messageServer,
+            final Runnable onAcquire,
+            final @Nullable BiConsumer<AppLocker, LockingBusyException> onBusy,
+            final Consumer<LockingException> onFail) {
         final Path path = lockPath.toAbsolutePath();
         final String encodedId = idEncoder.encode(nameId);
 
@@ -70,19 +73,21 @@ public final class AppLocker implements AutoCloseable {
      * @param id AppLocker unique ID
      * @return builder
      */
-    public static @NotNull Builder create(final @NotNull String id) {
+    public static Builder create(final String id) {
         return new Builder(id);
     }
 
-    private @NotNull Path newLockFile(final Path path, final String lockNamePattern, final String idEncoder) {
+    private static Path newLockFile(final Path path, final String lockNamePattern, final String idEncoder) {
         return path.resolve(format(lockNamePattern, idEncoder));
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return format("AppLocker{lockId='%s', gLock=%s, appLock=%s, portFile=%s}", lockId, gLock, appLock, portFile);
     }
 
-    @Override public void close() throws Exception {
+    @Override
+    public void close() throws Exception {
         unlock();
     }
 
@@ -90,7 +95,8 @@ public final class AppLocker implements AutoCloseable {
      * Acquire the lock.
      *
      * @throws LockingBusyException if lock has already been taken by someone
-     * @throws LockingException     if any error has occurred during the locking process (I/O exception)
+     * @throws LockingException if any error has occurred during the locking process (I/O exception)
+     * @throws InterruptedException if the thread was interrupted while waiting for the global lock
      */
     public synchronized void lock() throws InterruptedException {
         if (isLocked()) {
@@ -107,28 +113,36 @@ public final class AppLocker implements AutoCloseable {
     }
 
     private void lock0() throws InterruptedException {
+        gLock.lock(LOCK_TIMEOUT_MS);
         try {
-            gLock.lock(LOCK_TIMEOUT_MS);
-
             appLock.tryLock();
             if (server != null) {
-                try {
-                    server.start();
-                    final int port = server.getPort(PORT_TIMEOUT_MS);
-                    writeAppLockPortToFile(portFile, port);
-                } catch (IOException ex) {
-                    appLock.close();
-                    throw new LockingException("Unable to communicate with server", ex);
-                }
+                startServer(server);
             }
-
-            acquiredHandler.run();
         } finally {
             gLock.close();
         }
+
+        acquiredHandler.run();
     }
 
-    private void handleLockBusyException(final @NotNull LockingBusyException ex) {
+    private void startServer(final Server<?, ?> messageServer) throws InterruptedException {
+        try {
+            messageServer.start();
+            final int port = messageServer.getPort(PORT_TIMEOUT_MS);
+            writeAppLockPortToFile(portFile, port);
+        } catch (IOException | RuntimeException | InterruptedException ex) {
+            // do not leave a half-initialized lock behind
+            messageServer.stop();
+            appLock.close();
+            if (ex instanceof InterruptedException) {
+                throw (InterruptedException) ex;
+            }
+            throw new LockingException("Unable to start the message server", ex);
+        }
+    }
+
+    private void handleLockBusyException(final LockingBusyException ex) {
         // if busy != null then prefer busy
         if (busyHandler != null) {
             try {
@@ -143,25 +157,33 @@ public final class AppLocker implements AutoCloseable {
 
     /**
      * Unlock the lock.
-     * <br>
-     * Does nothing if a lock is not locked.
+     *
+     * <p>Does nothing if a lock is not locked by this instance.
+     *
+     * @throws InterruptedException if the thread was interrupted while waiting for the global lock
      */
     public synchronized void unlock() throws InterruptedException {
-        try {
-            gLock.lock(LOCK_TIMEOUT_MS);
+        if (!isLocked()) {
+            return;
+        }
 
-            try {
-                if (server != null) {
-                    server.stop();
-                    Files.delete(portFile);
-                }
-            } finally {
-                appLock.close();
+        gLock.lock(LOCK_TIMEOUT_MS);
+        try {
+            if (server != null) {
+                server.stop();
+                deletePortFile();
             }
-        } catch (IOException ignored) {
-            LOG.debug("Unable to delete {}", portFile);
         } finally {
+            appLock.close();
             gLock.close();
+        }
+    }
+
+    private void deletePortFile() {
+        try {
+            Files.deleteIfExists(portFile);
+        } catch (IOException ex) {
+            LOG.log(Level.DEBUG, () -> "Unable to delete " + portFile, ex);
         }
     }
 
@@ -178,30 +200,42 @@ public final class AppLocker implements AutoCloseable {
      * Send a message to AppLocker instance that's holding the lock (including self).
      *
      * @param message message
-     * @param <I>     message type
-     * @param <O>     return type
+     * @param <I> message type
+     * @param <O> return type
      * @return the answer from AppLocker's message messageHandler
      * @throws LockingException if there's a trouble communicating to other AppLocker instance
      */
-    public @NotNull <I extends Serializable, O extends Serializable> O sendMessage(final @NotNull I message) {
+    @SuppressWarnings("TypeParameterUnusedInFormals") // TODO: unsafe generic API, to be revisited
+    public <I extends Serializable, O extends Serializable> O sendMessage(final I message) {
         try {
             final int port = getPortFromFile();
             final Client<I, O> client = new Client<>(port);
             return client.send(message);
         } catch (NoSuchFileException ex) {
-            throw new LockingException("Unable to open port file, please check that message server is running");
+            throw new LockingException("Unable to open port file, please check that message server is running", ex);
         } catch (IOException ex) {
             throw new LockingException("Unable to read port file", ex);
         }
     }
 
-    private void writeAppLockPortToFile(final @NotNull Path portFilePath, final int portNumber) throws IOException {
-        Files.write(portFilePath, ByteBuffer.allocate(Integer.BYTES).putInt(portNumber).array());
+    private static void writeAppLockPortToFile(final Path portFilePath, final int portNumber) throws IOException {
+        // write to a temporary file first, so readers never observe a partially written port file
+        final Path tmp = portFilePath.resolveSibling(portFilePath.getFileName() + ".tmp");
+        Files.write(tmp, ByteBuffer.allocate(Integer.BYTES).putInt(portNumber).array());
+        Files.move(tmp, portFilePath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
     }
 
     private int getPortFromFile() throws IOException {
-        LOG.debug("Reading port file {}", portFile);
-        return ByteBuffer.wrap(Files.readAllBytes(portFile)).getInt();
+        LOG.log(Level.DEBUG, "Reading port file {0}", portFile);
+        final byte[] bytes = Files.readAllBytes(portFile);
+        if (bytes.length != Integer.BYTES) {
+            throw new LockingException(format("Port file '%s' is corrupted", portFile));
+        }
+        final int port = ByteBuffer.wrap(bytes).getInt();
+        if (port <= 0 || port > MAX_PORT) {
+            throw new LockingException(format("Port file '%s' contains invalid port %d", portFile, port));
+        }
+        return port;
     }
 
     /**
@@ -210,13 +244,12 @@ public final class AppLocker implements AutoCloseable {
      * @author Alexander Biryukov
      */
     public static final class Builder {
-        private final @NotNull String id;
-        private @NotNull Path path = Paths.get("");
-        private @NotNull LockIdEncoder encoder = new Sha1Encoder();
+        private final String id;
+        private Path path = Paths.get("");
+        private LockIdEncoder encoder = new Sha1Encoder();
         private @Nullable MessageHandler<?, ?> messageHandler;
-        private @NotNull Runnable acquiredHandler = () -> {
-        };
-        private @NotNull Consumer<LockingException> failedHandler = ex -> {
+        private Runnable acquiredHandler = () -> {};
+        private Consumer<LockingException> failedHandler = ex -> {
             throw ex;
         };
         private @Nullable BiConsumer<AppLocker, LockingBusyException> busyHandler;
@@ -226,68 +259,70 @@ public final class AppLocker implements AutoCloseable {
          *
          * @param lockId lock id
          */
-        public Builder(final @NotNull String lockId) {
+        public Builder(final String lockId) {
             id = lockId;
         }
 
         /**
-         * Sets the path where the lock file will be stored.<br> Default value is ""
+         * Sets the path where the lock file will be stored.<br>
+         * Default value is ""
          *
          * @param storePath storing path
          * @return builder
          */
-        public @NotNull Builder setPath(final @NotNull Path storePath) {
+        public Builder setPath(final Path storePath) {
             path = storePath;
             return this;
         }
 
         /**
-         * Sets the message handler.<br> If not set, AppLocker won't support communication features.<br> Default value
-         * is null.
+         * Sets the message handler.<br>
+         * If not set, AppLocker won't support communication features.<br>
+         * Default value is null.
          *
          * @param handler message handler
          * @return builder
          */
-        public @NotNull Builder setMessageHandler(final @NotNull MessageHandler<?, ?> handler) {
+        public Builder setMessageHandler(final MessageHandler<?, ?> handler) {
             messageHandler = handler;
             return this;
         }
 
         /**
-         * Sets the name encoder.<br> Encodes lock lockId to filesystem-friendly entry.<br> Default value is "SHA-1"
-         * encoder.
+         * Sets the name encoder.<br>
+         * Encodes lock lockId to filesystem-friendly entry.<br>
+         * Default value is "SHA-1" encoder.
          *
          * @param idEncoder name encoder
          * @return builder
          */
-        public @NotNull Builder setIdEncoder(final @NotNull LockIdEncoder idEncoder) {
+        public Builder setIdEncoder(final LockIdEncoder idEncoder) {
             encoder = idEncoder;
             return this;
         }
 
         /**
-         * Defines a callback if locking was successful.<br> Default value is empty function.
+         * Defines a callback if locking was successful.<br>
+         * Default value is empty function.
          *
          * @param callback function to call after successful locking
          * @return builder
          */
-        public @NotNull Builder onSuccess(final @NotNull Runnable callback) {
+        public Builder onSuccess(final Runnable callback) {
             acquiredHandler = callback;
             return this;
         }
 
         /**
-         * Defines the action for when the lock is already taken.<br> Default value is null.
+         * Defines the action for when the lock is already taken.<br>
+         * Default value is null.
          *
          * @param message message for the lock holder
          * @param handler answer processing function
-         * @param <T>     answer type
+         * @param <T> answer type
          * @return builder
          */
-        public @NotNull <T extends Serializable> Builder onBusy(
-            final @NotNull Serializable message,
-            final @NotNull Consumer<T> handler
-        ) {
+        public <T extends Serializable> Builder onBusy(final Serializable message, final Consumer<T> handler) {
             busyHandler = (appLocker, ex) -> {
                 final T answer = appLocker.sendMessage(message);
                 handler.accept(answer);
@@ -296,13 +331,14 @@ public final class AppLocker implements AutoCloseable {
         }
 
         /**
-         * Defines the action for when the lock is already taken.<br> Default value is null.
+         * Defines the action for when the lock is already taken.<br>
+         * Default value is null.
          *
          * @param message message for the lock holder
          * @param handler answer processing function
          * @return builder
          */
-        public @NotNull Builder onBusy(final @NotNull Serializable message, final @NotNull Runnable handler) {
+        public Builder onBusy(final Serializable message, final Runnable handler) {
             busyHandler = (appLocker, ignoredException) -> {
                 appLocker.sendMessage(message);
                 handler.run();
@@ -311,25 +347,25 @@ public final class AppLocker implements AutoCloseable {
         }
 
         /**
-         * Defines the action for when locking is impossible.<br> Default value is identity function (re-throws
-         * exception).
+         * Defines the action for when locking is impossible.<br>
+         * Default value is identity function (re-throws exception).
          *
          * @param handler error processing function
          * @return builder
          */
-        public @NotNull Builder onFail(final @NotNull Consumer<LockingException> handler) {
+        public Builder onFail(final Consumer<LockingException> handler) {
             failedHandler = handler;
             return this;
         }
 
         /**
-         * Defines the action for when locking is impossible.<br> Default value is identity function (re-throws
-         * exception).
+         * Defines the action for when locking is impossible.<br>
+         * Default value is identity function (re-throws exception).
          *
          * @param handler error processing function
          * @return builder
          */
-        public @NotNull Builder onFail(final @NotNull Runnable handler) {
+        public Builder onFail(final Runnable handler) {
             failedHandler = ignoredException -> handler.run();
             return this;
         }
@@ -339,7 +375,7 @@ public final class AppLocker implements AutoCloseable {
          *
          * @return AppLocker instance
          */
-        public @NotNull AppLocker build() {
+        public AppLocker build() {
             final Server<?, ?> server = messageHandler != null ? new Server<>(messageHandler) : null;
 
             return new AppLocker(id, path, encoder, server, acquiredHandler, busyHandler, failedHandler);

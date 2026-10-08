@@ -1,32 +1,35 @@
 package io.github.sanyarnd.applocker;
 
-import java.io.IOException;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
-import java.nio.channels.OverlappingFileLockException;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import static java.lang.String.format;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
 
+import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
+import org.jspecify.annotations.Nullable;
+
 /**
  * File-channel based lock.
+ *
+ * <p>The lock file is intentionally kept on disk after {@link #unlock()}: removing it would allow two processes to
+ * "own" the lock at the same time, one holding the lock on the deleted file and the other one on a newly created file
+ * with the same name.
  *
  * @author Alexander Biryukov
  */
 public final class Lock implements AutoCloseable {
-    private static final Logger LOG = LoggerFactory.getLogger(Lock.class);
-    private static final int LOCK_SLEEP_MS = 10;
+    private static final Logger LOG = System.getLogger(Lock.class.getName());
+    private static final long LOCK_SLEEP_MS = 10;
 
-    private final @NotNull Path file;
+    private final Path file;
     private @Nullable FileChannel channel;
     private @Nullable FileLock fileLock;
 
@@ -35,99 +38,118 @@ public final class Lock implements AutoCloseable {
      *
      * @param f lock file
      */
-    public Lock(final @NotNull Path f) {
+    public Lock(final Path f) {
         file = f.toAbsolutePath();
     }
 
     @Override
-    public synchronized void close() {
+    public void close() {
         unlock();
     }
 
     /**
      * Tries to acquire the lock and ignores any {@link LockingBusyException} during the process.
-     * <br>
-     * Be aware that it's easy to get a spin lock if the other Lock won't call {@link #close()}.
+     *
+     * <p>Be aware that it's easy to get a spin lock if the other Lock won't call {@link #close()}.
      *
      * @param timeoutMs timeout in milliseconds
      * @throws LockingException lock exceeded timeout
+     * @throws InterruptedException if the thread was interrupted while waiting for the lock
      */
     public synchronized void lock(final long timeoutMs) throws InterruptedException {
-        final long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - timeoutMs <= start) {
+        final long start = System.nanoTime();
+        final long timeoutNs = TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+        while (true) {
             try {
                 tryLock();
                 return;
-            } catch (LockingBusyException ignored) {
+            } catch (LockingBusyException ex) {
+                if (System.nanoTime() - start >= timeoutNs) {
+                    throw new LockingException(format("Lock attempt timeout=%dms exceeded", timeoutMs), ex);
+                }
                 Thread.sleep(LOCK_SLEEP_MS);
             }
         }
-        throw new LockingException(format("Lock attempt timeout=%dms exceeded", timeoutMs));
     }
 
     /**
      * Unlock the lock.
+     *
+     * <p>Does nothing if the lock is not locked.
      */
-    public void unlock() {
-        LOG.debug("Unlocking {}", file);
-        try {
-            if (fileLock != null) {
-                fileLock.close();
-            }
-            fileLock = null;
-
-            if (channel != null) {
-                channel.close();
-            }
-            channel = null;
-
-            Files.delete(file);
-        } catch (NoSuchFileException ignored) {
-            // ignore if file is not here
-        } catch (IOException ex) {
-            // something very wrong goes here
-            LOG.error("An error during unlocking {}", file, ex);
-            throw new AssertionError("Should never happen", ex);
+    public synchronized void unlock() {
+        final FileChannel ch = channel;
+        channel = null;
+        fileLock = null;
+        if (ch == null) {
+            return;
         }
+
+        LOG.log(Level.DEBUG, "Unlocking {0}", file);
+        // closing the channel releases the file lock as well
+        closeQuietly(ch);
     }
 
     /**
-     * Attempt to lock {@link #file}.
+     * Attempt to lock the file.
      *
-     * @throws LockingException     if any error occurred during the locking process (I/O exception)
+     * <p>Does nothing if the lock is already held by this instance.
+     *
+     * @throws LockingException if any error occurred during the locking process (I/O exception)
      * @throws LockingBusyException if a lock is already taken by someone
      */
     public synchronized void tryLock() {
-        LOG.debug("Locking {}", file);
-        createParentDirs();
-        try {
-            createChannelLock();
-        } catch (IOException ex) {
-            throw new LockingException("Unable to open lock file channel", ex);
+        if (isLocked()) {
+            return;
         }
+
+        LOG.log(Level.DEBUG, "Locking {0}", file);
+        createParentDirs();
+
+        final FileChannel ch;
+        try {
+            ch = FileChannel.open(file, CREATE, READ, WRITE);
+        } catch (IOException ex) {
+            throw new LockingException(format("Unable to open lock file '%s'", file), ex);
+        }
+
+        final FileLock lock;
+        try {
+            lock = ch.tryLock();
+        } catch (OverlappingFileLockException ex) {
+            closeQuietly(ch);
+            throw new LockingBusyException("Lock is already held by this JVM", ex);
+        } catch (IOException ex) {
+            closeQuietly(ch);
+            throw new LockingException(format("Unable to lock file '%s'", file), ex);
+        }
+
+        if (lock == null) {
+            closeQuietly(ch);
+            throw new LockingBusyException("Lock is already held by another process", null);
+        }
+
+        channel = ch;
+        fileLock = lock;
     }
 
     private void createParentDirs() {
-        if (!Files.exists(file.getParent(), LinkOption.NOFOLLOW_LINKS)) {
-            try {
-                Files.createDirectories(file.getParent());
-            } catch (IOException ex) {
-                throw new LockingException(format("Unable to create parent directory '%s' for lock", file), ex);
-            }
+        final Path parent = file.getParent();
+        if (parent == null || Files.isDirectory(parent)) {
+            return;
+        }
+        try {
+            Files.createDirectories(parent);
+        } catch (IOException ex) {
+            throw new LockingException(format("Unable to create parent directory '%s' for lock", parent), ex);
         }
     }
 
-    private void createChannelLock() throws IOException {
-        channel = FileChannel.open(file, CREATE, READ, WRITE);
+    private void closeQuietly(final FileChannel ch) {
         try {
-            fileLock = channel.tryLock(); // can throw or return null
-            if (fileLock == null) {
-                throw new OverlappingFileLockException();
-            }
-        } catch (OverlappingFileLockException ex) {
-            channel.close();
-            channel = null;
-            throw new LockingBusyException("Unable to acquire file lock", ex);
+            ch.close();
+        } catch (IOException ex) {
+            LOG.log(Level.WARNING, () -> "Unable to close lock file " + file, ex);
         }
     }
 
@@ -136,7 +158,7 @@ public final class Lock implements AutoCloseable {
      *
      * @return true if locked, false otherwise
      */
-    public boolean isLocked() {
+    public synchronized boolean isLocked() {
         return channel != null && fileLock != null && channel.isOpen() && fileLock.isValid();
     }
 

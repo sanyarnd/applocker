@@ -1,6 +1,6 @@
 package io.github.sanyarnd.applocker;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Exception indicates that the lock has already been acquired.
@@ -8,13 +8,15 @@ import org.jetbrains.annotations.Nullable;
  * @author Alexander Biryukov
  */
 public class LockingBusyException extends LockingException {
+    private static final long serialVersionUID = 1L;
+
     /**
-     * Create lock busy exception
+     * Create lock busy exception.
      *
      * @param message exception message
-     * @param cause   exception cause
+     * @param cause exception cause
      */
-    public LockingBusyException(@Nullable final String message, @Nullable final Throwable cause) {
+    public LockingBusyException(final @Nullable String message, final @Nullable Throwable cause) {
         super(message, cause);
     }
 }

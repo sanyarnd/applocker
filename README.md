@@ -1,6 +1,7 @@
 # AppLocker
-![Build Status](https://github.com/sanyarnd/applocker/actions/workflows/build.yml/badge.svg)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=io.github.sanyarnd%3Aapp-locker&metric=coverage)](https://sonarcloud.io/summary/new_code?id=io.github.sanyarnd%3Aapp-locker)
+[![Build](https://github.com/sanyarnd/applocker/actions/workflows/build.yml/badge.svg)](https://github.com/sanyarnd/applocker/actions/workflows/build.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.sanyarnd/app-locker)](https://central.sonatype.com/artifact/io.github.sanyarnd/app-locker)
+[![Javadoc](https://javadoc.io/badge2/io.github.sanyarnd/app-locker/javadoc.svg)](https://javadoc.io/doc/io.github.sanyarnd/app-locker)
 
 AppLocker is a small library which provides the often missing single instance functionality.
 
@@ -9,7 +10,8 @@ AppLocker is a small library which provides the often missing single instance fu
 * An arbitrary `AppLocker` has the ability to communicate with the `AppLocker` which currently owns the lock
 * Lightweight (~20kb) 
 * No transitive dependencies
-* JDK8+ support
+* JDK 11+ support
+* Logging via `System.Logger` (Java Platform Logging), route it to any backend you like
 
 # Quick Start
 The usage flow typically looks like this:
@@ -56,26 +58,46 @@ try {
 }
 ```
 
-More details can be found in [JavaDocs](https://sanyarnd.github.io/applocker/apidocs/index.html).
+More details can be found in [JavaDocs](https://javadoc.io/doc/io.github.sanyarnd/app-locker).
 
 # Download
 Maven:
 ```xml
-<dependency> 
-    <groupId>io.github.sanyarnd</groupId> 
+<dependency>
+    <groupId>io.github.sanyarnd</groupId>
     <artifactId>app-locker</artifactId>
     <version>1.2.0</version>
 </dependency>
 ```
 
 Gradle:
-```gradle
-compile 'io.github.sanyarnd:app-locker:1.1.2'
+```kotlin
+implementation("io.github.sanyarnd:app-locker:1.2.0")
 ```
- 
-Standalone jars are available on [releases](https://github.com/sanyarnd/applocker/releases) page.
 
-More download options available in [Bintray](https://bintray.com/sanya-rnd/maven-projects/applocker) repository.
+Artifacts are published to [Maven Central](https://central.sonatype.com/artifact/io.github.sanyarnd/app-locker),
+[GitHub Packages](https://github.com/sanyarnd/applocker/packages) and attached to
+[GitHub releases](https://github.com/sanyarnd/applocker/releases).
+
+# Building
+JDK 21+ is required to build the project (the library itself targets Java 11):
+```shell
+./gradlew build            # compile, run Error Prone/NullAway, Spotless checks, tests and coverage
+./gradlew spotlessApply    # reformat sources (palantir-java-format)
+```
+
+# Releasing
+Push a tag like `2.0.0` and the [Release](.github/workflows/release.yml) workflow publishes
+the artifacts to Maven Central, GitHub Packages and creates a GitHub release.
+
+Required repository secrets:
+
+| Secret                   | Description                                                                     |
+|--------------------------|---------------------------------------------------------------------------------|
+| `MAVEN_CENTRAL_USERNAME` | Central Portal user token name (https://central.sonatype.com/account)           |
+| `MAVEN_CENTRAL_PASSWORD` | Central Portal user token password                                              |
+| `GPG_PRIVATE_KEY`        | ASCII-armored GPG private key (`gpg --armor --export-secret-keys <id>`)         |
+| `GPG_KEY_PASSPHRASE`     | Passphrase of the GPG key                                                       |
 
 # Changelog
 See [CHANGELOG.md](CHANGELOG.md).

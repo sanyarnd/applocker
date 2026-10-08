@@ -1,6 +1,6 @@
 package io.github.sanyarnd.applocker;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The Exception indicates that there was a failure (most probably I/O) during acquiring the lock.
@@ -8,6 +8,8 @@ import org.jetbrains.annotations.Nullable;
  * @author Alexander Biryukov
  */
 public class LockingException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
     LockingException(final @Nullable String message, final @Nullable Throwable cause) {
         super(message, cause);
     }

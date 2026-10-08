@@ -1,10 +1,8 @@
 package io.github.sanyarnd.applocker;
 
-import org.jetbrains.annotations.NotNull;
-
 /**
- * Provides a safe way to encode application id such that it can be stored on filesystem without exceptions:
- * invalid characters, too long etc.
+ * Provides a safe way to encode application id such that it can be stored on filesystem without exceptions: invalid
+ * characters, too long etc.
  *
  * @author Alexander Biryukov
  */
@@ -16,6 +14,5 @@ public interface LockIdEncoder {
      * @param inputString input string
      * @return encoded string
      */
-    @NotNull
-    String encode(@NotNull String inputString);
+    String encode(String inputString);
 }

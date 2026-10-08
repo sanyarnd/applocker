@@ -2,67 +2,89 @@ name: Build
 
 on:
   pull_request:
-    branches: [ master ]
   push:
     branches: [ master ]
-    tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    name: Build
-    runs-on: ubuntu-latest
+    name: Build (${{ matrix.os }}, tests on JDK ${{ matrix.test-java }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        test-java: [ '17', '21', '25' ]
+        include:
+          - os: windows-latest
+            test-java: '21'
+          - os: macos-latest
+            test-java: '21'
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v5
 
-      - name: Prepare JDK
-        uses: actions/setup-java@v2
+      - name: Set up JDKs
+        uses: actions/setup-java@v5
         with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
+          distribution: temurin
+          # the last one is the default JDK which runs Gradle and the compiler
+          java-version: |
+            ${{ matrix.test-java }}
+            21
 
-      - name: Maven Build
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn verify sonar:sonar
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
 
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v1
+      - name: Build
+        shell: bash
+        run: >
+          ./gradlew build --stacktrace
+          -PtestJavaVersion=${{ matrix.test-java }}
+          -Porg.gradle.java.installations.auto-download=false
+          -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ matrix.test-java }}_X64,JAVA_HOME_${{ matrix.test-java }}_ARM64
+
+      - name: Upload reports
         if: always()
+        uses: actions/upload-artifact@v5
         with:
-          files: |
-            target/surefire-reports/TEST-*.xml
-            target/failsafe-reports/TEST-*.xml
+          name: reports-${{ matrix.os }}-jdk${{ matrix.test-java }}
+          path: |
+            build/reports/
+            build/test-results/
+          if-no-files-found: ignore
 
-      - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v5
-        if: startsWith(github.ref, 'refs/tags/')
+  publish-snapshot-check:
+    name: Verify publication
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
         with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}
+          distribution: temurin
+          java-version: '21'
 
-      - name: List keys
-        if: startsWith(github.ref, 'refs/tags/')
-        run: gpg -K
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
 
-      - name: Upload to Maven Central
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-        run: mvn deploy -Pdeploy -DskipTests=true
+      - name: Publish to local repository
+        run: ./gradlew publishToMavenLocal --stacktrace
 
-      - name: Prepage Github Pages
-        if: startsWith(github.ref, 'refs/tags/')
-        run: cp -r target/apidocs gh-pages && cp README.md gh-pages/README.md && cp CHANGELOG.md gh-pages/CHANGELOG.md
-
-      - name: Deploy Github Pages
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          branch: gh-pages
-          folder: gh-pages
+      - name: Check published artifacts
+        run: |
+          dir="$HOME/.m2/repository/io/github/sanyarnd/app-locker"
+          ls -R "$dir"
+          for suffix in .jar -sources.jar -javadoc.jar .pom .module; do
+            ls "$dir"/*/app-locker-*"$suffix" > /dev/null
+          done

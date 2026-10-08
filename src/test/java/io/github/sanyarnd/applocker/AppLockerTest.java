@@ -1,217 +1,330 @@
 package io.github.sanyarnd.applocker;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import org.junit.jupiter.api.Assertions;
+import java.util.ArrayList;
+import java.util.List;
+import org.instancio.junit.Given;
+import org.instancio.junit.InstancioExtension;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 
+@Timeout(value = 30, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+@ExtendWith(InstancioExtension.class)
 class AppLockerTest {
-    private static <T extends Serializable> MessageHandler<T, T> createEchoHandler() {
-        return message -> message;
+    private static final String ID = "test-app";
+
+    @TempDir
+    Path tempDir;
+
+    private final List<AppLocker> lockers = new ArrayList<>();
+
+    @AfterEach
+    void unlockAll() throws InterruptedException {
+        for (AppLocker locker : lockers) {
+            locker.unlock();
+        }
+    }
+
+    private AppLocker.Builder builder(final String id) {
+        return AppLocker.create(id).setPath(tempDir);
+    }
+
+    private AppLocker register(final AppLocker locker) {
+        lockers.add(locker);
+        return locker;
+    }
+
+    private AppLocker locker(final String id) {
+        return register(builder(id).build());
+    }
+
+    private <T extends Serializable> AppLocker echoLocker(final String id) {
+        return register(
+                builder(id).setMessageHandler((MessageHandler<T, T>) m -> m).build());
+    }
+
+    private Path portFile(final String id) {
+        return tempDir.resolve("." + new Sha1Encoder().encode(id) + "_port.lock");
     }
 
     @Test
-    void lock_twice_throws() throws InterruptedException {
-        final AppLocker l1 = AppLocker.create("sameId").build();
-        final AppLocker l2 = AppLocker.create("sameId").build();
-
-        l1.lock();
-        Assertions.assertThrows(LockingBusyException.class, l2::lock);
-
-        Assertions.assertTrue(l1.isLocked());
-        Assertions.assertFalse(l2.isLocked());
-
-        // cleanup
-        l1.unlock();
-        l2.unlock();
+    void newLockerIsNotLocked() {
+        assertThat(locker(ID).isLocked()).isFalse();
     }
 
     @Test
-    void lock_unlock_multiple_times() throws InterruptedException {
-        final AppLocker l1 = AppLocker.create("sameId").build();
+    void lockAcquiresLock() throws InterruptedException {
+        final AppLocker locker = locker(ID);
 
-        for (int i = 0; i < 3; ++i) {
-            l1.lock();
-            Assertions.assertTrue(l1.isLocked());
-            l1.unlock();
+        locker.lock();
+
+        assertThat(locker.isLocked()).isTrue();
+    }
+
+    @Test
+    void lockIsReentrant() throws InterruptedException {
+        final AppLocker locker = locker(ID);
+
+        locker.lock();
+        locker.lock();
+
+        assertThat(locker.isLocked()).isTrue();
+    }
+
+    @Test
+    void unlockReleasesLock() throws InterruptedException {
+        final AppLocker locker = locker(ID);
+        locker.lock();
+
+        locker.unlock();
+
+        assertThat(locker.isLocked()).isFalse();
+    }
+
+    @Test
+    @SuppressWarnings("try")
+    void closeReleasesLock() throws Exception {
+        final AppLocker locker = locker(ID);
+        try (AppLocker l = locker) {
+            l.lock();
+        }
+
+        assertThat(locker.isLocked()).isFalse();
+    }
+
+    @Test
+    void unlockWithoutLockDoesNothing() {
+        assertThatCode(locker(ID)::unlock).doesNotThrowAnyException();
+    }
+
+    @Test
+    void canLockAndUnlockManyTimes() throws InterruptedException {
+        final AppLocker locker = locker(ID);
+
+        for (int i = 0; i < 5; ++i) {
+            locker.lock();
+            assertThat(locker.isLocked()).isTrue();
+            locker.unlock();
+            assertThat(locker.isLocked()).isFalse();
         }
     }
 
     @Test
-    void lock_consecutive_works() throws InterruptedException {
-        final AppLocker l1 = AppLocker.create("sameId").build();
+    void secondLockerWithSameIdIsBusy() throws InterruptedException {
+        final AppLocker first = locker(ID);
+        final AppLocker second = locker(ID);
+        first.lock();
 
-        l1.lock();
-        l1.lock();
-        l1.lock();
-
-        l1.unlock();
+        assertThatThrownBy(second::lock).isInstanceOf(LockingBusyException.class);
+        assertThat(first.isLocked()).isTrue();
+        assertThat(second.isLocked()).isFalse();
     }
 
     @Test
-    void lock_unlock_the_same_lock() throws InterruptedException {
-        final AppLocker l1 = AppLocker.create("sameId").build();
+    void lockCanBeTakenOverAfterUnlock() throws InterruptedException {
+        final AppLocker first = locker(ID);
+        final AppLocker second = locker(ID);
+        first.lock();
+        first.unlock();
 
-        l1.lock();
-        Assertions.assertTrue(l1.isLocked());
-        l1.unlock();
-        Assertions.assertFalse(l1.isLocked());
-        l1.lock();
-        Assertions.assertTrue(l1.isLocked());
+        second.lock();
 
-        // cleanup
-        l1.unlock();
+        assertThat(second.isLocked()).isTrue();
+    }
+
+    @RepeatedTest(10)
+    void lockersWithDifferentIdsAreIndependent(@Given final String firstId, @Given final String secondId)
+            throws InterruptedException {
+        final AppLocker first = locker(firstId);
+        final AppLocker second = locker(secondId + "-other");
+
+        first.lock();
+        second.lock();
+
+        assertThat(first.isLocked()).isTrue();
+        assertThat(second.isLocked()).isTrue();
     }
 
     @Test
-    void lock_unlock_then_lock_by_other_applock() throws InterruptedException {
-        final AppLocker l1 = AppLocker.create("sameId").build();
-        final AppLocker l2 = AppLocker.create("sameId").build();
+    void lockersInDifferentDirectoriesAreIndependent() throws InterruptedException, IOException {
+        final AppLocker first = locker(ID);
+        final AppLocker second = register(AppLocker.create(ID)
+                .setPath(Files.createDirectory(tempDir.resolve("other")))
+                .build());
 
-        l1.lock();
-        Assertions.assertTrue(l1.isLocked());
-        l1.unlock();
-        Assertions.assertFalse(l1.isLocked());
-        l2.lock();
-        Assertions.assertTrue(l2.isLocked());
+        first.lock();
+        second.lock();
 
-        // cleanup
-        l1.unlock();
-        l2.unlock();
+        assertThat(first.isLocked()).isTrue();
+        assertThat(second.isLocked()).isTrue();
     }
 
     @Test
-    void lock_two_independent_locks() throws InterruptedException {
-        final AppLocker l1 = AppLocker.create("idOne").build();
-        final AppLocker l2 = AppLocker.create("idTwo").build();
+    void usesCustomIdEncoder() throws InterruptedException {
+        final LockIdEncoder encoder = mock(LockIdEncoder.class);
+        when(encoder.encode(anyString()))
+                .thenAnswer(inv -> "custom-" + inv.getArgument(0, String.class).length());
+        final AppLocker locker = register(builder(ID).setIdEncoder(encoder).build());
 
-        l1.lock();
-        Assertions.assertTrue(l1.isLocked());
-        l2.lock();
-        Assertions.assertTrue(l2.isLocked());
+        locker.lock();
 
-        // cleanup
-        l1.unlock();
-        l2.unlock();
+        verify(encoder).encode(ID);
+        assertThat(tempDir.resolve(".custom-" + ID.length() + ".lock")).exists();
     }
 
     @Test
-    void unlock_before_lock_doesnt_throw() {
-        final AppLocker l1 = AppLocker.create("sameId").build();
-        Assertions.assertDoesNotThrow(l1::unlock);
+    void failsIfLockDirectoryCannotBeCreated() throws IOException {
+        final Path file = Files.createFile(tempDir.resolve("not-a-directory"));
+        final AppLocker locker = register(AppLocker.create(ID).setPath(file).build());
+
+        assertThatThrownBy(locker::lock).isExactlyInstanceOf(LockingException.class);
+        assertThat(locker.isLocked()).isFalse();
     }
 
     @Test
-    void communication_to_self() throws InterruptedException {
-        final AppLocker l1 = AppLocker.create("sameId").onBusy("", (ans) -> {
-        }).setMessageHandler(createEchoHandler()).build();
+    void createsLockDirectory() throws InterruptedException {
+        final Path dir = tempDir.resolve("nested").resolve("dir");
+        final AppLocker locker = register(AppLocker.create(ID).setPath(dir).build());
 
-        l1.lock();
+        locker.lock();
 
-        String messageToSelf = l1.sendMessage("self");
-        Assertions.assertEquals("self", messageToSelf);
-
-        // cleanup
-        l1.unlock();
+        assertThat(dir).isDirectory();
     }
 
     @Test
-    void communication_between_two_locks() throws InterruptedException {
-        final AppLocker l1 = AppLocker.create("sameId").onBusy("", (ans) -> {
-        }).setMessageHandler(createEchoHandler()).build();
-        final AppLocker l2 = AppLocker.create("sameId").build();
+    void sendsMessageToSelf() throws InterruptedException {
+        final AppLocker locker = echoLocker(ID);
+        locker.lock();
 
-        l1.lock();
+        final String answer = locker.sendMessage("self");
 
-        String messageToOther = l2.sendMessage("other");
-        Assertions.assertEquals("other", messageToOther);
+        assertThat(answer).isEqualTo("self");
+    }
 
-        // cleanup
-        l1.unlock();
-        l2.unlock();
+    @RepeatedTest(10)
+    void sendsMessageToLockOwner(@Given final String message) throws InterruptedException {
+        final AppLocker owner = echoLocker(ID);
+        final AppLocker other = locker(ID);
+        owner.lock();
+
+        final String answer = other.sendMessage(message);
+
+        assertThat(answer).isEqualTo(message);
     }
 
     @Test
-    void communication_doesnt_work_without_lock() throws InterruptedException {
-        final AppLocker l1 = AppLocker.create("sameId").onBusy("", (ans) -> {
-        }).setMessageHandler(createEchoHandler()).build();
-        Assertions.assertThrows(LockingException.class, () -> l1.sendMessage("self"));
+    void sendMessageFailsWithoutOwner() {
+        final AppLocker locker = echoLocker(ID);
 
-        // cleanup
-        l1.unlock();
+        assertThatThrownBy(() -> locker.sendMessage("self"))
+                .isExactlyInstanceOf(LockingException.class)
+                .hasMessageContaining("port file");
     }
 
     @Test
-    void communication_after_reacquiring_the_lock() throws InterruptedException {
-        final AppLocker l1 = AppLocker.create("sameId").onBusy("", (ans) -> {
-        }).setMessageHandler((MessageHandler<String, String>) message -> "1").build();
-        final AppLocker l2 = AppLocker.create("sameId").onBusy("", (ans) -> {
-        }).setMessageHandler((MessageHandler<String, String>) message -> "2").build();
+    void sendMessageFailsIfOwnerHasNoMessageHandler() throws InterruptedException {
+        final AppLocker owner = locker(ID);
+        owner.lock();
 
-        l1.lock();
-        String messageToOther = l2.sendMessage("whatever");
-        Assertions.assertEquals("1", messageToOther);
-
-        l1.unlock();
-
-        l2.lock();
-        messageToOther = l1.sendMessage("whatever");
-        Assertions.assertEquals("2", messageToOther);
-
-        // cleanup
-        l1.unlock();
-        l2.unlock();
+        assertThatThrownBy(() -> locker(ID).sendMessage("hello")).isExactlyInstanceOf(LockingException.class);
     }
 
     @Test
-    void custom_name_provider() throws InterruptedException {
-        LockIdEncoder doubleName = string -> string + string;
-        final AppLocker l1 = AppLocker.create("sameId").setIdEncoder(doubleName).build();
-        Assertions.assertDoesNotThrow(l1::lock);
+    void sendMessageFailsOnCorruptedPortFile() throws IOException {
+        Files.write(portFile(ID), new byte[] {1, 2});
 
-        // cleanup
-        l1.unlock();
+        assertThatThrownBy(() -> locker(ID).sendMessage("hello"))
+                .isExactlyInstanceOf(LockingException.class)
+                .hasMessageContaining("corrupted");
     }
 
     @Test
-    void to_string() {
-        AppLocker l1 = AppLocker.create("sameId").build();
-        Assertions.assertDoesNotThrow(l1::toString);
+    void sendMessageFailsOnInvalidPort() throws IOException {
+        Files.write(portFile(ID), new byte[] {0, 0, 0, 0});
+
+        assertThatThrownBy(() -> locker(ID).sendMessage("hello"))
+                .isExactlyInstanceOf(LockingException.class)
+                .hasMessageContaining("invalid port");
     }
 
     @Test
-    @EnabledOnOs(OS.WINDOWS)
-    void invalid_path_windows_throws() {
-        Path path = Paths.get("Z:/");
-        final AppLocker l1 = AppLocker.create("sameId").setPath(path).build();
+    void unlockRemovesPortFile() throws InterruptedException {
+        final AppLocker locker = echoLocker(ID);
+        locker.lock();
+        assertThat(portFile(ID)).exists();
 
-        Assertions.assertThrows(LockingException.class, l1::lock);
+        locker.unlock();
+
+        assertThat(portFile(ID)).doesNotExist();
     }
 
     @Test
-    @EnabledOnOs(OS.WINDOWS)
-    void invalid_path_2_windows_throws() {
-        Path path = Paths.get("Z:/invalid_subpath");
-        final AppLocker l1 = AppLocker.create("sameId").setPath(path).build();
-        Assertions.assertThrows(LockingException.class, l1::lock);
+    void unlockByNonOwnerDoesNotBreakOwner() throws InterruptedException {
+        final AppLocker owner = echoLocker(ID);
+        final AppLocker other = register(builder(ID)
+                .setMessageHandler((MessageHandler<String, String>) m -> m)
+                .onFail(() -> {})
+                .build());
+        owner.lock();
+        other.lock();
+
+        other.unlock();
+
+        assertThat(owner.isLocked()).isTrue();
+        assertThat(portFile(ID)).exists();
+        assertThat(other.<String, String>sendMessage("still there")).isEqualTo("still there");
     }
 
     @Test
-    @EnabledOnOs(OS.LINUX)
-    void invalid_path_linux_throws() {
-        Path path = Paths.get("/invalid");
-        final AppLocker l1 = AppLocker.create("sameId").setPath(path).build();
-        Assertions.assertThrows(LockingException.class, l1::lock);
+    void messagesAreRoutedToNewOwnerAfterTakeover() throws InterruptedException {
+        final AppLocker first = register(builder(ID)
+                .setMessageHandler((MessageHandler<String, String>) m -> "first")
+                .build());
+        final AppLocker second = register(builder(ID)
+                .setMessageHandler((MessageHandler<String, String>) m -> "second")
+                .build());
+
+        first.lock();
+        assertThat(second.<String, String>sendMessage("who?")).isEqualTo("first");
+
+        first.unlock();
+        second.lock();
+        assertThat(first.<String, String>sendMessage("who?")).isEqualTo("second");
     }
 
     @Test
-    @EnabledOnOs(OS.LINUX)
-    void invalid_path_2_linux_throws() {
-        Path path = Paths.get("/invalid/invalid");
-        final AppLocker l1 = AppLocker.create("sameId").setPath(path).build();
-        Assertions.assertThrows(LockingException.class, l1::lock);
+    void failedServerStartReleasesLock() throws InterruptedException, IOException {
+        // a non-empty directory in place of the port file makes it impossible to publish the port
+        Files.createFile(Files.createDirectory(portFile(ID)).resolve("blocker"));
+        final AppLocker locker = echoLocker(ID);
+
+        assertThatThrownBy(locker::lock)
+                .isExactlyInstanceOf(LockingException.class)
+                .hasMessageContaining("message server");
+        assertThat(locker.isLocked()).isFalse();
+
+        final AppLocker plain = locker(ID);
+        plain.lock();
+        assertThat(plain.isLocked()).isTrue();
+    }
+
+    @Test
+    void toStringContainsId() {
+        assertThat(locker(ID).toString()).startsWith("AppLocker{lockId='" + ID + "'");
     }
 }

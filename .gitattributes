@@ -35,3 +35,10 @@
 *.jpeg          binary
 *.png           binary
 
+
+# Gradle wrapper scripts
+gradlew         text eol=lf
+*.bat           text eol=crlf
+*.kts           text
+*.toml          text
+*.yml           text

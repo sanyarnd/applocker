@@ -1,9 +1,3 @@
-### Wrapper ###
-.mvn/wrapper/maven-wrapper.jar
-
-### Build artifacts ###
-target/
-
 ### PVS-Studio ###
 .PVS-Studio/
 
@@ -32,3 +26,9 @@ target/
 
 ### VS Code ###
 .vscode/
+
+### Gradle ###
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.kotlin/
