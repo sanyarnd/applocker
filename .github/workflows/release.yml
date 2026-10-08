@@ -1,0 +1,64 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-*'
+
+concurrency:
+  group: release
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    name: Publish ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    environment: release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
+
+      - name: Build
+        run: ./gradlew build -Pversion=${{ github.ref_name }} --stacktrace
+
+      - name: Publish to Maven Central and GitHub Packages
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_PRIVATE_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_KEY_PASSPHRASE }}
+          ORG_GRADLE_PROJECT_GitHubPackagesUsername: ${{ github.actor }}
+          ORG_GRADLE_PROJECT_GitHubPackagesPassword: ${{ secrets.GITHUB_TOKEN }}
+        run: >
+          ./gradlew
+          publishToMavenCentral
+          publishAllPublicationsToGitHubPackagesRepository
+          -Pversion=${{ github.ref_name }}
+          --no-configuration-cache
+          --stacktrace
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "${{ github.ref_name }}"
+          build/libs/*.jar
+          --title "${{ github.ref_name }}"
+          --generate-notes
+          --verify-tag

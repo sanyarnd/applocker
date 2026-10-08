@@ -1,119 +1,210 @@
 package io.github.sanyarnd.applocker;
 
-import org.junit.jupiter.api.Assertions;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@Timeout(value = 30, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+@ExtendWith(MockitoExtension.class)
 class AppLockerHandlersTest {
-    @Test
-    void busy_handler_suppress_exception() throws InterruptedException {
-        final AppLocker l1 = AppLocker.create("sameId").onBusy("asd", (ans) -> {
-        }).setMessageHandler(e -> e).build();
-        final AppLocker l2 = AppLocker.create("sameId").onBusy("asd", (ans) -> {
-        }).setMessageHandler(e -> e).build();
+    private static final String ID = "handlers";
 
-        l1.lock();
-        l2.lock();
-        Assertions.assertTrue(l1.isLocked());
-        Assertions.assertFalse(l2.isLocked());
+    @TempDir
+    Path tempDir;
 
-        // cleanup
-        l1.unlock();
-        l2.unlock();
+    @Mock
+    private Runnable onSuccess;
+
+    @Mock
+    private Runnable onBusyRunnable;
+
+    @Mock
+    private Consumer<String> onBusyConsumer;
+
+    @Mock
+    private Consumer<LockingException> onFail;
+
+    @Mock
+    private Runnable onFailRunnable;
+
+    private final List<AppLocker> lockers = new ArrayList<>();
+
+    @AfterEach
+    void unlockAll() throws InterruptedException {
+        for (AppLocker locker : lockers) {
+            locker.unlock();
+        }
+    }
+
+    private AppLocker.Builder builder() {
+        return AppLocker.create(ID).setPath(tempDir);
+    }
+
+    private AppLocker register(final AppLocker.Builder builder) {
+        final AppLocker locker = builder.build();
+        lockers.add(locker);
+        return locker;
+    }
+
+    private AppLocker lockedOwner(final MessageHandler<String, String> handler) throws InterruptedException {
+        final AppLocker owner = register(builder().setMessageHandler(handler));
+        owner.lock();
+        return owner;
     }
 
     @Test
-    void busy_handler_runnable_suppress_exception() throws InterruptedException {
-        final AppLocker l1 = AppLocker.create("sameId").onBusy("asd", () -> {
-        }).setMessageHandler(e -> e).build();
-        final AppLocker l2 = AppLocker.create("sameId").onBusy("asd", () -> {
-        }).setMessageHandler(e -> e).build();
+    void successHandlerIsCalledOnLock() throws InterruptedException {
+        final AppLocker locker = register(builder().onSuccess(onSuccess));
 
-        l1.lock();
-        l2.lock();
-        Assertions.assertTrue(l1.isLocked());
-        Assertions.assertFalse(l2.isLocked());
+        locker.lock();
 
-        // cleanup
-        l1.unlock();
-        l2.unlock();
+        verify(onSuccess).run();
     }
 
     @Test
-    void fail_handler_suppress_exception() throws InterruptedException {
-        Integer[] ret = {0};
-        final AppLocker l1 = AppLocker.create("sameId").onFail((ex) -> {
-        }).build();
-        final AppLocker l2 = AppLocker.create("sameId").onFail((ex) -> ret[0] = -1).build();
+    void successHandlerIsNotCalledWhenAlreadyLocked() throws InterruptedException {
+        final AppLocker locker = register(builder().onSuccess(onSuccess));
 
-        l1.lock();
-        l2.lock();
-        Assertions.assertTrue(l1.isLocked());
-        Assertions.assertFalse(l2.isLocked());
-        // test that failed handler is called
-        Assertions.assertEquals(-1, ret[0]);
+        locker.lock();
+        locker.lock();
 
-        // cleanup
-        l1.unlock();
-        l2.unlock();
+        verify(onSuccess).run();
     }
 
     @Test
-    void busy_handler_supersedes_fail_handler_when_suppressing_exception() throws InterruptedException {
-        Integer[] ret = {0};
-        final AppLocker l1 = AppLocker.create("sameId").onFail((ex) -> {
-        }).onBusy("asd", (ans) -> {
-        }).setMessageHandler(e -> e).build();
-        final AppLocker l2 = AppLocker.create("sameId").onFail((ex) -> ret[0] = -1).onBusy("asd", (ans) -> ret[0] = 1)
-            .setMessageHandler(e -> e).build();
+    void successHandlerIsNotCalledWhenBusy() throws InterruptedException {
+        lockedOwner(m -> m);
+        final AppLocker locker = register(builder().onSuccess(onSuccess).onFail(onFail));
 
-        l1.lock();
-        l2.lock();
-        Assertions.assertTrue(l1.isLocked());
-        Assertions.assertFalse(l2.isLocked());
+        locker.lock();
 
-        // test that busy handler is called
-        Assertions.assertEquals(1, ret[0]);
-
-        // cleanup
-        l1.unlock();
-        l2.unlock();
+        verifyNoInteractions(onSuccess);
     }
 
     @Test
-    void fail_handler_supersedes_fail_handler_when_busy_throws_exception() throws InterruptedException {
-        Integer[] ret = {0};
-        final AppLocker l1 = AppLocker.create("sameId").onFail((ex) -> {
-        }).onBusy("asd", (ans) -> {
-        }).setMessageHandler(e -> {
-            throw new IllegalArgumentException();
-        }).build();
-        final AppLocker l2 = AppLocker.create("sameId").onFail((ex) -> ret[0] = -1).onBusy("asd", (ans) -> ret[0] = 1)
-            .setMessageHandler(e -> e).build();
+    void busyHandlerReceivesAnswerOfOwner() throws InterruptedException {
+        lockedOwner(m -> "answer to " + m);
+        final AppLocker locker =
+                register(builder().onBusy("question", onBusyConsumer).onFail(onFail));
 
-        l1.lock();
-        l2.lock();
-        Assertions.assertTrue(l1.isLocked());
-        Assertions.assertFalse(l2.isLocked());
-        // test that failed handler is called
-        Assertions.assertEquals(-1, ret[0]);
+        locker.lock();
 
-        // cleanup
-        l1.unlock();
-        l2.unlock();
+        verify(onBusyConsumer).accept("answer to question");
+        verifyNoInteractions(onFail);
+        assertThat(locker.isLocked()).isFalse();
     }
 
     @Test
-    void lock_acquired_is_called() throws InterruptedException {
-        Integer[] ret = {0};
-        final AppLocker l1 = AppLocker.create("sameId").onSuccess(() -> ret[0] = 1).build();
+    void busyRunnableIsCalledAfterMessageIsDelivered() throws InterruptedException {
+        final List<String> received = new ArrayList<>();
+        lockedOwner(m -> {
+            received.add(m);
+            return m;
+        });
+        final AppLocker locker =
+                register(builder().onBusy("hello", onBusyRunnable).onFail(onFail));
 
-        l1.lock();
-        Assertions.assertTrue(l1.isLocked());
-        // test that failed handler is called
-        Assertions.assertEquals(1, ret[0]);
+        locker.lock();
 
-        // cleanup
-        l1.unlock();
+        verify(onBusyRunnable).run();
+        verifyNoInteractions(onFail);
+        assertThat(received).containsExactly("hello");
     }
 
+    @Test
+    void failHandlerReceivesBusyExceptionWithoutBusyHandler() throws InterruptedException {
+        lockedOwner(m -> m);
+        final AppLocker locker = register(builder().onFail(onFail));
+
+        locker.lock();
+
+        verify(onFail).accept(any(LockingBusyException.class));
+    }
+
+    @Test
+    void failHandlerIsCalledIfBusyHandlerCannotReachOwner() throws InterruptedException {
+        // owner without a message handler
+        register(builder()).lock();
+        final AppLocker locker =
+                register(builder().onBusy("hello", onBusyConsumer).onFail(onFail));
+
+        locker.lock();
+
+        verifyNoInteractions(onBusyConsumer);
+        final ArgumentCaptor<LockingException> captor = ArgumentCaptor.forClass(LockingException.class);
+        verify(onFail).accept(captor.capture());
+        assertThat(captor.getValue()).isNotInstanceOf(LockingBusyException.class);
+    }
+
+    @Test
+    void failHandlerIsCalledIfOwnerFailsToHandleMessage() throws InterruptedException {
+        lockedOwner(m -> {
+            throw new IllegalStateException("broken handler");
+        });
+        final AppLocker locker =
+                register(builder().onBusy("hello", onBusyConsumer).onFail(onFail));
+
+        locker.lock();
+
+        verifyNoInteractions(onBusyConsumer);
+        verify(onFail).accept(any(LockingException.class));
+    }
+
+    @Test
+    void failRunnableIsCalledOnFailure() throws InterruptedException {
+        lockedOwner(m -> m);
+        final AppLocker locker = register(builder().onFail(onFailRunnable));
+
+        locker.lock();
+
+        verify(onFailRunnable).run();
+    }
+
+    @Test
+    void defaultFailHandlerRethrows() throws InterruptedException {
+        lockedOwner(m -> m);
+        final AppLocker locker = register(builder());
+
+        assertThatThrownBy(locker::lock).isInstanceOf(LockingBusyException.class);
+    }
+
+    @Test
+    void lastConfiguredHandlerWins() throws InterruptedException {
+        lockedOwner(m -> m);
+        final AppLocker locker = register(builder().onFail(onFail).onFail(onFailRunnable));
+
+        locker.lock();
+
+        verify(onFailRunnable).run();
+        verify(onFail, never()).accept(any());
+    }
+
+    @Test
+    void exceptionFromSuccessHandlerIsPassedToFailHandler() throws InterruptedException {
+        final LockingException failure = new LockingException("success handler failed");
+        doThrow(failure).when(onSuccess).run();
+        final AppLocker locker = register(builder().onSuccess(onSuccess).onFail(onFail));
+
+        assertThatCode(locker::lock).doesNotThrowAnyException();
+
+        verify(onFail).accept(failure);
+    }
 }

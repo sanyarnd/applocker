@@ -1,60 +1,260 @@
 package io.github.sanyarnd.applocker;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import org.junit.jupiter.api.Assertions;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 
+@Timeout(value = 30, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
 class LockTest {
+    @TempDir
+    Path tempDir;
+
+    private Path lockFile() {
+        return tempDir.resolve("test.lock");
+    }
+
     @Test
-    void lock_is_autoclosable() {
-        Path file = Paths.get("").toAbsolutePath().resolve("testFile");
-        try (Lock lock = new Lock(file)) {
+    void newLockIsNotLocked() {
+        final Lock lock = new Lock(lockFile());
+
+        assertThat(lock.isLocked()).isFalse();
+    }
+
+    @Test
+    void tryLockAcquiresLock() {
+        try (Lock lock = new Lock(lockFile())) {
             lock.tryLock();
-        }
-        // can lock the same file since it's been auto-unlocked
-        try (Lock lock = new Lock(file)) {
-            lock.tryLock();
+
+            assertThat(lock.isLocked()).isTrue();
+            assertThat(lockFile()).exists();
         }
     }
 
     @Test
-    void lock_looplock_doesnt_throw() throws InterruptedException, ExecutionException {
-        final Path file = Paths.get("").toAbsolutePath().resolve("testFile");
+    void tryLockIsIdempotent() {
+        try (Lock lock = new Lock(lockFile())) {
+            lock.tryLock();
+            lock.tryLock();
 
-        Lock lock = new Lock(file);
+            assertThat(lock.isLocked()).isTrue();
+        }
+    }
+
+    @Test
+    void unlockReleasesLock() {
+        final Lock lock = new Lock(lockFile());
         lock.tryLock();
 
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        Future<?> future = executor.submit(() -> {
-            try (Lock lock1 = new Lock(file)) {
-                lock1.lock(300);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+        lock.unlock();
+
+        assertThat(lock.isLocked()).isFalse();
+    }
+
+    @Test
+    void unlockKeepsLockFile() {
+        final Lock lock = new Lock(lockFile());
+        lock.tryLock();
+
+        lock.unlock();
+
+        assertThat(lockFile()).exists();
+    }
+
+    @Test
+    void unlockWithoutLockDoesNothing() {
+        final Lock lock = new Lock(lockFile());
+
+        assertThatCode(lock::unlock).doesNotThrowAnyException();
+        assertThat(lockFile()).doesNotExist();
+    }
+
+    @Test
+    void lockCanBeReacquiredAfterUnlock() {
+        try (Lock lock = new Lock(lockFile())) {
+            for (int i = 0; i < 3; ++i) {
+                lock.tryLock();
+                assertThat(lock.isLocked()).isTrue();
+                lock.unlock();
+                assertThat(lock.isLocked()).isFalse();
             }
-        });
-        // sleep and let other thread to spin a bit
-        Thread.sleep(100);
-
-        lock.close();
-        executor.shutdown();
+        }
     }
 
     @Test
-    void lock_throws_if_timeout_exceeded() {
-        final Path file = Paths.get("").toAbsolutePath().resolve("testFile");
+    void closeReleasesLock() {
+        try (Lock lock = new Lock(lockFile())) {
+            lock.tryLock();
+        }
 
-        Lock lock = new Lock(file);
-        lock.tryLock();
-        Lock lock2 = new Lock(file);
+        try (Lock lock = new Lock(lockFile())) {
+            lock.tryLock();
+            assertThat(lock.isLocked()).isTrue();
+        }
+    }
 
-        Assertions.assertThrows(LockingException.class, () -> lock2.lock(50));
+    @Test
+    void secondLockOnSameFileIsBusy() {
+        try (Lock first = new Lock(lockFile());
+                Lock second = new Lock(lockFile())) {
+            first.tryLock();
 
-        lock.close();
-        lock2.close();
+            assertThatThrownBy(second::tryLock).isInstanceOf(LockingBusyException.class);
+            assertThat(first.isLocked()).isTrue();
+            assertThat(second.isLocked()).isFalse();
+        }
+    }
+
+    @Test
+    void busyLockCanBeAcquiredAfterOwnerReleasesIt() {
+        try (Lock first = new Lock(lockFile());
+                Lock second = new Lock(lockFile())) {
+            first.tryLock();
+            assertThatThrownBy(second::tryLock).isInstanceOf(LockingBusyException.class);
+
+            first.unlock();
+            second.tryLock();
+
+            assertThat(second.isLocked()).isTrue();
+        }
+    }
+
+    @Test
+    void locksOnDifferentFilesAreIndependent() {
+        try (Lock first = new Lock(tempDir.resolve("first.lock"));
+                Lock second = new Lock(tempDir.resolve("second.lock"))) {
+            first.tryLock();
+            second.tryLock();
+
+            assertThat(first.isLocked()).isTrue();
+            assertThat(second.isLocked()).isTrue();
+        }
+    }
+
+    @Test
+    void createsMissingParentDirectories() {
+        final Path file = tempDir.resolve("a").resolve("b").resolve("test.lock");
+
+        try (Lock lock = new Lock(file)) {
+            lock.tryLock();
+
+            assertThat(file).exists();
+        }
+    }
+
+    @Test
+    void failsIfParentIsRegularFile() throws IOException {
+        final Path parent = Files.createFile(tempDir.resolve("file"));
+        final Lock lock = new Lock(parent.resolve("test.lock"));
+
+        assertThatThrownBy(lock::tryLock)
+                .isExactlyInstanceOf(LockingException.class)
+                .hasMessageContaining("parent directory");
+        assertThat(lock.isLocked()).isFalse();
+    }
+
+    @Test
+    void failsIfLockFileIsDirectory() throws IOException {
+        final Path dir = Files.createDirectory(lockFile());
+        final Lock lock = new Lock(dir);
+
+        assertThatThrownBy(lock::tryLock).isExactlyInstanceOf(LockingException.class);
+        assertThat(lock.isLocked()).isFalse();
+    }
+
+    @Test
+    void lockWithTimeoutAcquiresFreeLock() throws InterruptedException {
+        try (Lock lock = new Lock(lockFile())) {
+            lock.lock(0);
+
+            assertThat(lock.isLocked()).isTrue();
+        }
+    }
+
+    @Test
+    void lockWithTimeoutFailsIfLockIsNotReleased() {
+        try (Lock owner = new Lock(lockFile());
+                Lock waiter = new Lock(lockFile())) {
+            owner.tryLock();
+
+            final long start = System.nanoTime();
+            assertThatThrownBy(() -> waiter.lock(100))
+                    .isExactlyInstanceOf(LockingException.class)
+                    .hasMessageContaining("timeout=100ms")
+                    .hasCauseInstanceOf(LockingBusyException.class);
+            assertThat(System.nanoTime() - start).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toNanos(100));
+            assertThat(waiter.isLocked()).isFalse();
+        }
+    }
+
+    @Test
+    void lockWithTimeoutWaitsUntilLockIsReleased() throws Exception {
+        final CountDownLatch started = new CountDownLatch(1);
+        try (Lock owner = new Lock(lockFile());
+                Lock waiter = new Lock(lockFile())) {
+            owner.tryLock();
+
+            final CompletableFuture<Boolean> acquired = CompletableFuture.supplyAsync(() -> {
+                started.countDown();
+                try {
+                    waiter.lock(10_000);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(ex);
+                }
+                return waiter.isLocked();
+            });
+
+            started.await();
+            Thread.sleep(100);
+            assertThat(acquired).isNotDone();
+
+            owner.unlock();
+
+            assertThat(acquired.get(10, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    @Test
+    void lockWithTimeoutIsInterruptible() throws Exception {
+        try (Lock owner = new Lock(lockFile());
+                Lock waiter = new Lock(lockFile())) {
+            owner.tryLock();
+
+            final CompletableFuture<Throwable> result = new CompletableFuture<>();
+            final Thread thread = new Thread(() -> {
+                try {
+                    waiter.lock(60_000);
+                    result.complete(new AssertionError("lock must not be acquired"));
+                } catch (Throwable ex) {
+                    result.complete(ex);
+                }
+            });
+            thread.start();
+            Thread.sleep(50);
+            thread.interrupt();
+
+            assertThat(result.get(10, TimeUnit.SECONDS)).isInstanceOf(InterruptedException.class);
+        }
+    }
+
+    @Test
+    void toStringContainsFileAndState() {
+        try (Lock lock = new Lock(lockFile())) {
+            assertThat(lock).hasToString("Lock{file=" + lockFile().toAbsolutePath() + ", locked=false}");
+
+            lock.tryLock();
+
+            assertThat(lock).hasToString("Lock{file=" + lockFile().toAbsolutePath() + ", locked=true}");
+        }
     }
 }

@@ -1,0 +1,47 @@
+name: Pages
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+
+permissions:
+  contents: write
+
+jobs:
+  pages:
+    name: Deploy GitHub Pages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
+
+      - name: Build javadoc
+        run: ./gradlew javadoc ${{ github.ref_type == 'tag' && format('-Pversion={0}', github.ref_name) || '' }}
+
+      - name: Prepare site
+        run: |
+          cp -r build/docs/javadoc gh-pages/apidocs
+          cp README.md CHANGELOG.md gh-pages/
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: gh-pages

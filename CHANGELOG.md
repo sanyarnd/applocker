@@ -1,3 +1,15 @@
+# 2.0.0 (unreleased)
+- Java 11+
+- No runtime dependencies: `slf4j-api` replaced with `System.Logger`, JetBrains annotations with JSpecify
+- Message server listens on loopback only
+- Socket timeouts for the message client and server
+- `AppLocker#unlock` by a non-owner no longer deletes the owner's port file
+- Failed message server start releases the lock
+- A broken client connection no longer stops the message server
+- Lock files are no longer deleted on unlock, deleting them allowed two owners at once
+- `Lock#tryLock` no longer leaks file channels when called twice
+- `Lock#unlock` no longer throws `AssertionError`
+
 # 1.2.0
 - Simplify exception hierarchy
 - Add AutoClosable interface
