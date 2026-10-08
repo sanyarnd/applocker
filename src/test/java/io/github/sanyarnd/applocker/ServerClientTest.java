@@ -136,7 +136,6 @@ class ServerClientTest {
         final int port = startServer((MessageHandler<String, String>) m -> m);
 
         try (Socket silent = new Socket(InetAddress.getLoopbackAddress(), port)) {
-            // the silent client holds the only server thread until the request timeout expires
             assertThat(silent.isConnected()).isTrue();
             assertThat(new Client<String, String>(port).send("alive")).isEqualTo("alive");
         }
@@ -157,7 +156,6 @@ class ServerClientTest {
     void abruptDisconnectDoesNotBreakServer() throws Exception {
         final int port = startServer((MessageHandler<String, String>) m -> m);
 
-        // connect and immediately disconnect
         new Socket(InetAddress.getLoopbackAddress(), port).close();
 
         assertThat(new Client<String, String>(port).send("alive")).isEqualTo("alive");
@@ -231,7 +229,6 @@ class ServerClientTest {
         server.stop();
 
         assertThatThrownBy(server::tryGetPort).isExactlyInstanceOf(LockingException.class);
-        // the port is released eventually
         final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
         while (true) {
             try {

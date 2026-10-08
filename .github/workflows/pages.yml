@@ -8,7 +8,6 @@ on:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -34,13 +33,7 @@ jobs:
           cache-read-only: true
 
       - name: Build javadoc
-        shell: bash
-        run: |
-          args=()
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            args+=("-Pversion=${{ github.ref_name }}")
-          fi
-          ./gradlew javadoc "${args[@]}" --stacktrace
+        run: ./gradlew javadoc ${{ github.ref_type == 'tag' && format('-Pversion={0}', github.ref_name) || '' }}
 
       - name: Prepare site
         run: |

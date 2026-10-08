@@ -19,12 +19,11 @@ import org.jspecify.annotations.Nullable;
 /**
  * The Locker class provides methods for a locking mechanism and encapsulates socket-based message server for IPC.
  *
- * <p>No need to call {@link #unlock()} directly: the operating system releases file locks once the JVM is terminated.
- * Feel free to call {@link #unlock()} any time if it is required by your application logic.
+ * <p>No need to call {@link #unlock()} directly: the OS releases file locks when the JVM exits.
  *
  * @author Alexander Biryukov
  */
-// TODO: close() can throw InterruptedException, to be revisited together with the API changes
+// TODO: close() throws InterruptedException
 @SuppressWarnings("try")
 public final class AppLocker implements AutoCloseable {
     private static final Logger LOG = System.getLogger(AppLocker.class.getName());
@@ -132,7 +131,6 @@ public final class AppLocker implements AutoCloseable {
             final int port = messageServer.getPort(PORT_TIMEOUT_MS);
             writeAppLockPortToFile(portFile, port);
         } catch (IOException | RuntimeException | InterruptedException ex) {
-            // do not leave a half-initialized lock behind
             messageServer.stop();
             appLock.close();
             if (ex instanceof InterruptedException) {
@@ -205,7 +203,7 @@ public final class AppLocker implements AutoCloseable {
      * @return the answer from AppLocker's message messageHandler
      * @throws LockingException if there's a trouble communicating to other AppLocker instance
      */
-    @SuppressWarnings("TypeParameterUnusedInFormals") // TODO: unsafe generic API, to be revisited
+    @SuppressWarnings("TypeParameterUnusedInFormals") // TODO: unchecked return type
     public <I extends Serializable, O extends Serializable> O sendMessage(final I message) {
         try {
             final int port = getPortFromFile();
@@ -219,7 +217,6 @@ public final class AppLocker implements AutoCloseable {
     }
 
     private static void writeAppLockPortToFile(final Path portFilePath, final int portNumber) throws IOException {
-        // write to a temporary file first, so readers never observe a partially written port file
         final Path tmp = portFilePath.resolveSibling(portFilePath.getFileName() + ".tmp");
         Files.write(tmp, ByteBuffer.allocate(Integer.BYTES).putInt(portNumber).array());
         Files.move(tmp, portFilePath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);

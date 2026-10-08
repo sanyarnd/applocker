@@ -5,7 +5,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 /**
- * SHA-1 string encoder, produces 40 lowercase hex characters.
+ * SHA-1 string encoder.
  *
  * @author Alexander Biryukov
  */
@@ -18,7 +18,6 @@ final class Sha1Encoder implements LockIdEncoder {
         try {
             sha1 = MessageDigest.getInstance("SHA-1");
         } catch (NoSuchAlgorithmException ex) {
-            // every Java platform implementation is required to support SHA-1
             throw new AssertionError(ex);
         }
 

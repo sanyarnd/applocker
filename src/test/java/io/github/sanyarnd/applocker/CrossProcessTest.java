@@ -95,7 +95,7 @@ class CrossProcessTest {
         holder.destroyForcibly();
         assertThat(holder.waitFor(30, TimeUnit.SECONDS)).isTrue();
 
-        // Windows releases the locks of a terminated process asynchronously, so the lock may stay busy for a moment
+        // Windows releases locks of a terminated process asynchronously
         final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
         while (true) {
             try {

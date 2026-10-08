@@ -31,7 +31,6 @@ import org.jspecify.annotations.Nullable;
 final class Server<I extends Serializable, O extends Serializable> implements AutoCloseable {
     private static final Logger LOG = System.getLogger(Server.class.getName());
     private static final long PORT_SLEEP_TIMEOUT_MS = 10;
-    // a client which doesn't send its request in time must not block the server forever
     private static final int REQUEST_TIMEOUT_MS = 5_000;
 
     private final MessageHandler<I, O> messageHandler;
@@ -71,7 +70,6 @@ final class Server<I extends Serializable, O extends Serializable> implements Au
         LOG.log(Level.DEBUG, "Stopping message server");
 
         if (threadHandle != null) {
-            // interrupting the thread closes the server socket channel
             threadHandle.cancel(true);
         }
 
@@ -144,7 +142,6 @@ final class Server<I extends Serializable, O extends Serializable> implements Au
                     try {
                         channel = socket.accept();
                     } catch (ClosedChannelException ex) {
-                        // server was stopped
                         break;
                     }
                     handleConnection(channel);
@@ -156,15 +153,10 @@ final class Server<I extends Serializable, O extends Serializable> implements Au
             LOG.log(Level.DEBUG, "Message server loop finished");
         }
 
-        private Socket configure(final Socket socket) throws IOException {
-            socket.setSoTimeout(REQUEST_TIMEOUT_MS);
-            return socket;
-        }
-
         @SuppressWarnings("unchecked")
         private void handleConnection(final SocketChannel channel) {
             try (SocketChannel ch = channel;
-                    Socket connSocket = configure(ch.socket());
+                    Socket connSocket = withTimeout(ch.socket());
                     ObjectOutputStream oos = new ObjectOutputStream(connSocket.getOutputStream());
                     ObjectInputStream ois = new ObjectInputStream(connSocket.getInputStream())) {
                 LOG.log(Level.DEBUG, "New connection from localhost:{0}", connSocket.getPort());
@@ -182,9 +174,13 @@ final class Server<I extends Serializable, O extends Serializable> implements Au
                 LOG.log(Level.DEBUG, "Calculated response: {0}", response);
                 oos.writeObject(response);
             } catch (IOException | ClassNotFoundException ex) {
-                // a failure of a single connection must not terminate the server
                 LOG.log(Level.WARNING, "Unable to process incoming message", ex);
             }
         }
+    }
+
+    private static Socket withTimeout(final Socket socket) throws IOException {
+        socket.setSoTimeout(REQUEST_TIMEOUT_MS);
+        return socket;
     }
 }

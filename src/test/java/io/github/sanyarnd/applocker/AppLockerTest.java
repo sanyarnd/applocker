@@ -309,7 +309,7 @@ class AppLockerTest {
 
     @Test
     void failedServerStartReleasesLock() throws InterruptedException, IOException {
-        // a non-empty directory in place of the port file makes it impossible to publish the port
+        // the port file cannot replace a non-empty directory
         Files.createFile(Files.createDirectory(portFile(ID)).resolve("blocker"));
         final AppLocker locker = echoLocker(ID);
 

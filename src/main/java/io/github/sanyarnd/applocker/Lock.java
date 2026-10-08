@@ -19,9 +19,8 @@ import org.jspecify.annotations.Nullable;
 /**
  * File-channel based lock.
  *
- * <p>The lock file is intentionally kept on disk after {@link #unlock()}: removing it would allow two processes to
- * "own" the lock at the same time, one holding the lock on the deleted file and the other one on a newly created file
- * with the same name.
+ * <p>The lock file is not deleted on {@link #unlock()}: otherwise another process could lock a new file with the same
+ * name while the deleted one is still locked.
  *
  * @author Alexander Biryukov
  */

@@ -1,14 +1,10 @@
 package io.github.sanyarnd.applocker;
 
 import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
+import java.io.OutputStream;
 import java.nio.file.Paths;
 
-/**
- * Entry point of a separate JVM used by {@link CrossProcessTest}: acquires the lock, reports it on stdout and holds it
- * until stdin is closed.
- */
+/** Holds the lock in a separate JVM until stdin is closed. */
 final class LockHolderProcess {
     static final String READY = "LOCKED";
 
@@ -21,13 +17,10 @@ final class LockHolderProcess {
                 .build();
         locker.lock();
 
-        final PrintStream out = new PrintStream(System.out, true, StandardCharsets.UTF_8);
-        out.println(READY);
+        System.out.println(READY);
+        System.out.flush();
 
-        // block until the parent process closes stdin
-        while (System.in.read() != -1) {
-            // ignore input
-        }
+        System.in.transferTo(OutputStream.nullOutputStream());
         locker.unlock();
     }
 }

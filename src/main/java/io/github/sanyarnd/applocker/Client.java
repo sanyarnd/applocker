@@ -22,7 +22,7 @@ import java.net.SocketTimeoutException;
 final class Client<I extends Serializable, O extends Serializable> {
     private static final Logger LOG = System.getLogger(Client.class.getName());
     private static final int CONNECT_TIMEOUT_MS = 5_000;
-    // TODO: make configurable, the message handler of the lock owner may take a while to answer
+    // TODO: make configurable
     private static final int DEFAULT_READ_TIMEOUT_MS = 30_000;
 
     private final int port;
@@ -42,7 +42,7 @@ final class Client<I extends Serializable, O extends Serializable> {
         LOG.log(Level.DEBUG, "Sending message to localhost:{0}", port);
         try (Socket socket = connect();
                 ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream())) {
-            // write the stream header before opening the input stream, so both sides never wait for each other
+            // ObjectInputStream constructor blocks until the peer sends its stream header
             output.flush();
             try (ObjectInputStream input = new ObjectInputStream(socket.getInputStream())) {
                 output.writeObject(message);

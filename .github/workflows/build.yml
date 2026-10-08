@@ -36,7 +36,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          # the last one is the default JDK which runs Gradle and the compiler
+          # the last one becomes JAVA_HOME
           java-version: |
             ${{ matrix.test-java }}
             21
@@ -50,17 +50,14 @@ jobs:
           ./gradlew build --stacktrace
           -PtestJavaVersion=${{ matrix.test-java }}
           -Porg.gradle.java.installations.auto-download=false
-          -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ matrix.test-java }}_X64,JAVA_HOME_${{ matrix.test-java }}_ARM64
+          -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ matrix.test-java }}_X64
 
       - name: Upload reports
-        if: always()
+        if: failure()
         uses: actions/upload-artifact@v5
         with:
           name: reports-${{ matrix.os }}-jdk${{ matrix.test-java }}
-          path: |
-            build/reports/
-            build/test-results/
-          if-no-files-found: ignore
+          path: build/reports/
 
   publication:
     name: Verify publication
@@ -82,27 +79,14 @@ jobs:
         run: ./gradlew publishToMavenLocal --stacktrace
 
       - name: Check published artifacts
-        run: |
-          dir="$HOME/.m2/repository/io/github/sanyarnd/app-locker"
-          ls -R "$dir"
-          for suffix in .jar -sources.jar -javadoc.jar .pom .module; do
-            ls "$dir"/*/app-locker-*"$suffix" > /dev/null
-          done
+        run: ls ~/.m2/repository/io/github/sanyarnd/app-locker/*/app-locker-*{.jar,-sources.jar,-javadoc.jar,.pom,.module}
 
-  # single required status check for branch protection, independent of the matrix layout
+  # required by branch protection
   build:
     name: Build
     if: always()
     needs: [ test, publication ]
     runs-on: ubuntu-latest
     steps:
-      - name: Check results
-        env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
-        run: |
-          echo "Results: $RESULTS"
-          for result in $RESULTS; do
-            if [ "$result" != "success" ]; then
-              exit 1
-            fi
-          done
+      - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

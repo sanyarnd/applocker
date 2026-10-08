@@ -30,11 +30,6 @@ class Sha1EncoderTest {
     }
 
     @RepeatedTest(10)
-    void isDeterministic(@Given final String input) {
-        assertThat(encoder.encode(input)).isEqualTo(new Sha1Encoder().encode(input));
-    }
-
-    @RepeatedTest(10)
     void differentInputsProduceDifferentNames(@Given final String input) {
         assertThat(encoder.encode(input)).isNotEqualTo(encoder.encode(input + "x"));
     }

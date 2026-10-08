@@ -11,7 +11,7 @@ AppLocker is a small library which provides the often missing single instance fu
 * Lightweight (~20kb) 
 * No transitive dependencies
 * JDK 11+ support
-* Logging via `System.Logger` (Java Platform Logging), route it to any backend you like
+* Logging via `System.Logger`
 
 # Quick Start
 The usage flow typically looks like this:
@@ -75,31 +75,22 @@ Gradle:
 implementation("io.github.sanyarnd:app-locker:1.2.0")
 ```
 
-Artifacts are published to [Maven Central](https://central.sonatype.com/artifact/io.github.sanyarnd/app-locker),
-[GitHub Packages](https://github.com/sanyarnd/applocker/packages) and attached to
-[GitHub releases](https://github.com/sanyarnd/applocker/releases).
+Jars are also available in [GitHub Packages](https://github.com/sanyarnd/applocker/packages)
+and on the [releases](https://github.com/sanyarnd/applocker/releases) page.
 
 # Building
-JDK 21+ is required to build the project (the library itself targets Java 11):
+Requires JDK 21+:
 ```shell
-./gradlew build            # compile, run Error Prone/NullAway, Spotless checks, tests and coverage
-./gradlew spotlessApply    # reformat sources (palantir-java-format)
+./gradlew build
+./gradlew spotlessApply
 ```
 
 # Releasing
-Push a tag like `2.0.0` and the [Release](.github/workflows/release.yml) workflow publishes
-the artifacts to Maven Central, GitHub Packages and creates a GitHub release.
-The [Pages](.github/workflows/pages.yml) workflow updates the [project site](https://sanyarnd.github.io/applocker/)
-with the README, changelog and javadoc (it can also be started manually).
+Pushing a tag like `2.0.0` publishes to Maven Central and GitHub Packages, creates a GitHub release
+and updates the [site](https://sanyarnd.github.io/applocker/).
 
-Required repository secrets:
-
-| Secret                   | Description                                                                     |
-|--------------------------|---------------------------------------------------------------------------------|
-| `MAVEN_CENTRAL_USERNAME` | Central Portal user token name (https://central.sonatype.com/account)           |
-| `MAVEN_CENTRAL_PASSWORD` | Central Portal user token password                                              |
-| `GPG_PRIVATE_KEY`        | ASCII-armored GPG private key (`gpg --armor --export-secret-keys <id>`)         |
-| `GPG_KEY_PASSPHRASE`     | Passphrase of the GPG key                                                       |
+Secrets: `MAVEN_CENTRAL_USERNAME`, `MAVEN_CENTRAL_PASSWORD` ([Central Portal token](https://central.sonatype.com/account)),
+`GPG_PRIVATE_KEY`, `GPG_KEY_PASSPHRASE`.
 
 # Changelog
 See [CHANGELOG.md](CHANGELOG.md).

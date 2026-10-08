@@ -141,7 +141,7 @@ class AppLockerHandlersTest {
 
     @Test
     void failHandlerIsCalledIfBusyHandlerCannotReachOwner() throws InterruptedException {
-        // owner without message handler: there's nobody to talk to
+        // owner without a message handler
         register(builder()).lock();
         final AppLocker locker =
                 register(builder().onBusy("hello", onBusyConsumer).onFail(onFail));

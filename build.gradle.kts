@@ -10,15 +10,12 @@ plugins {
     alias(libs.plugins.maven.publish)
 }
 
-/** JDK used to run the tests; defaults to the JDK running Gradle. */
 val testJavaVersion: Provider<String> = providers.gradleProperty("testJavaVersion")
 
 val mockitoAgent: Configuration by configurations.creating { isTransitive = false }
 
 dependencies {
-    // annotations only, not needed at runtime and not exposed as a transitive dependency
     compileOnly(libs.jspecify)
-    testCompileOnly(libs.jspecify)
 
     errorprone(libs.errorprone.core)
     errorprone(libs.nullaway)
@@ -35,12 +32,8 @@ dependencies {
 }
 
 tasks.withType<JavaCompile>().configureEach {
-    options.encoding = "UTF-8"
-    // "-options" silences warnings about old --release values on modern JDKs
-    options.compilerArgs.addAll(listOf("-Xlint:all,-options,-processing", "-Werror", "-parameters"))
+    options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
     options.errorprone {
-        disableWarningsInGeneratedCode = true
-        allErrorsAsWarnings = false
         check("NullAway", CheckSeverity.ERROR)
         option("NullAway:AnnotatedPackages", "io.github.sanyarnd.applocker")
     }
@@ -51,39 +44,29 @@ tasks.compileJava {
 }
 
 tasks.compileTestJava {
-    // JUnit 6 and Mockito 5 require Java 17+, the library itself stays Java 11 compatible
+    // JUnit 6 and Mockito 5 require Java 17
     options.release = 17
-    // tests deliberately misuse the API (nulls, wrong types), so only Error Prone checks remain enabled
-    options.errorprone.disable("NullAway")
 }
 
 tasks.javadoc {
     (options as StandardJavadocDocletOptions).apply {
-        encoding = "UTF-8"
-        source = "11"
         addBooleanOption("Xdoclint:all", true)
         addBooleanOption("Werror", true)
-        addStringOption("Xmaxwarns", "1000")
     }
 }
 
 tasks.jar {
     manifest {
-        attributes(
-            "Automatic-Module-Name" to "io.github.sanyarnd.applocker",
-            "Implementation-Title" to project.name,
-            "Implementation-Version" to project.version,
-        )
+        attributes("Automatic-Module-Name" to "io.github.sanyarnd.applocker")
     }
 }
 
 tasks.test {
     useJUnitPlatform()
-    // safety net: a hanging socket must never block CI for hours
     timeout = Duration.ofMinutes(15)
-    // Mockito's inline mock maker must be attached as an agent on JDK 21+
+    // JDK 21+ warns when Mockito attaches its agent dynamically
     val agent: FileCollection = mockitoAgent
-    jvmArgumentProviders.add(CommandLineArgumentProvider { listOf("-javaagent:${agent.singleFile}", "-Xshare:off") })
+    jvmArgumentProviders.add(CommandLineArgumentProvider { listOf("-javaagent:${agent.singleFile}") })
     if (testJavaVersion.isPresent) {
         javaLauncher =
             javaToolchains.launcherFor {
@@ -97,13 +80,6 @@ tasks.test {
     finalizedBy(tasks.jacocoTestReport)
 }
 
-tasks.jacocoTestReport {
-    reports {
-        xml.required = true
-        html.required = true
-    }
-}
-
 spotless {
     java {
         palantirJavaFormat(
@@ -111,8 +87,6 @@ spotless {
                 .get(),
         ).formatJavadoc(true)
         removeUnusedImports()
-        trimTrailingWhitespace()
-        endWithNewline()
     }
     kotlinGradle {
         target("*.gradle.kts")
@@ -127,7 +101,7 @@ spotless {
 
 mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
-    // signing is mandatory for Maven Central, but optional for local builds (publishToMavenLocal)
+    // allows publishToMavenLocal without a key
     if (providers.gradleProperty("signingInMemoryKey").isPresent) {
         signAllPublications()
     }
@@ -167,7 +141,6 @@ mavenPublishing {
 
 publishing {
     repositories {
-        // mirror of the Maven Central release, credentials are provided by GitHub Actions
         maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/sanyarnd/applocker")
