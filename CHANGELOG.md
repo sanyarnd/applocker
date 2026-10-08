@@ -1,5 +1,7 @@
 # 2.0.0 (unreleased)
 - Java 11+
+- `AppLocker#lock`, `#unlock` and `#close` no longer throw checked exceptions
+- No global lock: lockers with different ids no longer wait for each other
 - No runtime dependencies: `slf4j-api` replaced with `System.Logger`, JetBrains annotations with JSpecify
 - Message server listens on loopback only
 - Socket timeouts for the message client and server

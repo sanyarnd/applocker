@@ -23,20 +23,14 @@ import org.jspecify.annotations.Nullable;
  *
  * @author Alexander Biryukov
  */
-// TODO: close() throws InterruptedException
-@SuppressWarnings("try")
 public final class AppLocker implements AutoCloseable {
     private static final Logger LOG = System.getLogger(AppLocker.class.getName());
 
-    private static final String UNIQUE_GLOBAL_LOCK = "Unique global lock";
     private static final String LOCK_PORT_PATTERN = ".%s_port.lock";
     private static final String LOCK_NAME_PATTERN = ".%s.lock";
-    private static final int LOCK_TIMEOUT_MS = 1000;
-    private static final int PORT_TIMEOUT_MS = 1000;
     private static final int MAX_PORT = 0xFFFF;
 
     private final String lockId;
-    private final Lock gLock;
     private final Lock appLock;
     private final Path portFile;
     private final @Nullable Server<?, ?> server;
@@ -61,7 +55,6 @@ public final class AppLocker implements AutoCloseable {
         busyHandler = onBusy;
         failedHandler = onFail;
 
-        gLock = new Lock(newLockFile(path, LOCK_NAME_PATTERN, idEncoder.encode(UNIQUE_GLOBAL_LOCK)));
         appLock = new Lock(newLockFile(path, LOCK_NAME_PATTERN, encodedId));
         portFile = newLockFile(path, LOCK_PORT_PATTERN, encodedId);
     }
@@ -82,11 +75,11 @@ public final class AppLocker implements AutoCloseable {
 
     @Override
     public String toString() {
-        return format("AppLocker{lockId='%s', gLock=%s, appLock=%s, portFile=%s}", lockId, gLock, appLock, portFile);
+        return format("AppLocker{lockId='%s', appLock=%s, portFile=%s}", lockId, appLock, portFile);
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         unlock();
     }
 
@@ -95,9 +88,8 @@ public final class AppLocker implements AutoCloseable {
      *
      * @throws LockingBusyException if lock has already been taken by someone
      * @throws LockingException if any error has occurred during the locking process (I/O exception)
-     * @throws InterruptedException if the thread was interrupted while waiting for the global lock
      */
-    public synchronized void lock() throws InterruptedException {
+    public synchronized void lock() {
         if (isLocked()) {
             return;
         }
@@ -111,31 +103,20 @@ public final class AppLocker implements AutoCloseable {
         }
     }
 
-    private void lock0() throws InterruptedException {
-        gLock.lock(LOCK_TIMEOUT_MS);
-        try {
-            appLock.tryLock();
-            if (server != null) {
-                startServer(server);
-            }
-        } finally {
-            gLock.close();
+    private void lock0() {
+        appLock.tryLock();
+        if (server != null) {
+            startServer(server);
         }
-
         acquiredHandler.run();
     }
 
-    private void startServer(final Server<?, ?> messageServer) throws InterruptedException {
+    private void startServer(final Server<?, ?> messageServer) {
         try {
-            messageServer.start();
-            final int port = messageServer.getPort(PORT_TIMEOUT_MS);
-            writeAppLockPortToFile(portFile, port);
-        } catch (IOException | RuntimeException | InterruptedException ex) {
+            writeAppLockPortToFile(portFile, messageServer.start());
+        } catch (IOException | RuntimeException ex) {
             messageServer.stop();
             appLock.close();
-            if (ex instanceof InterruptedException) {
-                throw (InterruptedException) ex;
-            }
             throw new LockingException("Unable to start the message server", ex);
         }
     }
@@ -157,15 +138,13 @@ public final class AppLocker implements AutoCloseable {
      * Unlock the lock.
      *
      * <p>Does nothing if a lock is not locked by this instance.
-     *
-     * @throws InterruptedException if the thread was interrupted while waiting for the global lock
      */
-    public synchronized void unlock() throws InterruptedException {
+    public synchronized void unlock() {
         if (!isLocked()) {
             return;
         }
 
-        gLock.lock(LOCK_TIMEOUT_MS);
+        // delete the port file while holding the lock, afterwards it may belong to the next owner
         try {
             if (server != null) {
                 server.stop();
@@ -173,7 +152,6 @@ public final class AppLocker implements AutoCloseable {
             }
         } finally {
             appLock.close();
-            gLock.close();
         }
     }
 

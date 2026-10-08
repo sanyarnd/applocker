@@ -48,7 +48,7 @@ class AppLockerHandlersTest {
     private final List<AppLocker> lockers = new ArrayList<>();
 
     @AfterEach
-    void unlockAll() throws InterruptedException {
+    void unlockAll() {
         for (AppLocker locker : lockers) {
             locker.unlock();
         }
@@ -64,14 +64,14 @@ class AppLockerHandlersTest {
         return locker;
     }
 
-    private AppLocker lockedOwner(final MessageHandler<String, String> handler) throws InterruptedException {
+    private AppLocker lockedOwner(final MessageHandler<String, String> handler) {
         final AppLocker owner = register(builder().setMessageHandler(handler));
         owner.lock();
         return owner;
     }
 
     @Test
-    void successHandlerIsCalledOnLock() throws InterruptedException {
+    void successHandlerIsCalledOnLock() {
         final AppLocker locker = register(builder().onSuccess(onSuccess));
 
         locker.lock();
@@ -80,7 +80,7 @@ class AppLockerHandlersTest {
     }
 
     @Test
-    void successHandlerIsNotCalledWhenAlreadyLocked() throws InterruptedException {
+    void successHandlerIsNotCalledWhenAlreadyLocked() {
         final AppLocker locker = register(builder().onSuccess(onSuccess));
 
         locker.lock();
@@ -90,7 +90,7 @@ class AppLockerHandlersTest {
     }
 
     @Test
-    void successHandlerIsNotCalledWhenBusy() throws InterruptedException {
+    void successHandlerIsNotCalledWhenBusy() {
         lockedOwner(m -> m);
         final AppLocker locker = register(builder().onSuccess(onSuccess).onFail(onFail));
 
@@ -100,7 +100,7 @@ class AppLockerHandlersTest {
     }
 
     @Test
-    void busyHandlerReceivesAnswerOfOwner() throws InterruptedException {
+    void busyHandlerReceivesAnswerOfOwner() {
         lockedOwner(m -> "answer to " + m);
         final AppLocker locker =
                 register(builder().onBusy("question", onBusyConsumer).onFail(onFail));
@@ -113,7 +113,7 @@ class AppLockerHandlersTest {
     }
 
     @Test
-    void busyRunnableIsCalledAfterMessageIsDelivered() throws InterruptedException {
+    void busyRunnableIsCalledAfterMessageIsDelivered() {
         final List<String> received = new ArrayList<>();
         lockedOwner(m -> {
             received.add(m);
@@ -130,7 +130,7 @@ class AppLockerHandlersTest {
     }
 
     @Test
-    void failHandlerReceivesBusyExceptionWithoutBusyHandler() throws InterruptedException {
+    void failHandlerReceivesBusyExceptionWithoutBusyHandler() {
         lockedOwner(m -> m);
         final AppLocker locker = register(builder().onFail(onFail));
 
@@ -140,7 +140,7 @@ class AppLockerHandlersTest {
     }
 
     @Test
-    void failHandlerIsCalledIfBusyHandlerCannotReachOwner() throws InterruptedException {
+    void failHandlerIsCalledIfBusyHandlerCannotReachOwner() {
         // owner without a message handler
         register(builder()).lock();
         final AppLocker locker =
@@ -155,7 +155,7 @@ class AppLockerHandlersTest {
     }
 
     @Test
-    void failHandlerIsCalledIfOwnerFailsToHandleMessage() throws InterruptedException {
+    void failHandlerIsCalledIfOwnerFailsToHandleMessage() {
         lockedOwner(m -> {
             throw new IllegalStateException("broken handler");
         });
@@ -169,7 +169,7 @@ class AppLockerHandlersTest {
     }
 
     @Test
-    void failRunnableIsCalledOnFailure() throws InterruptedException {
+    void failRunnableIsCalledOnFailure() {
         lockedOwner(m -> m);
         final AppLocker locker = register(builder().onFail(onFailRunnable));
 
@@ -179,7 +179,7 @@ class AppLockerHandlersTest {
     }
 
     @Test
-    void defaultFailHandlerRethrows() throws InterruptedException {
+    void defaultFailHandlerRethrows() {
         lockedOwner(m -> m);
         final AppLocker locker = register(builder());
 
@@ -187,7 +187,7 @@ class AppLockerHandlersTest {
     }
 
     @Test
-    void lastConfiguredHandlerWins() throws InterruptedException {
+    void lastConfiguredHandlerWins() {
         lockedOwner(m -> m);
         final AppLocker locker = register(builder().onFail(onFail).onFail(onFailRunnable));
 
@@ -198,7 +198,7 @@ class AppLockerHandlersTest {
     }
 
     @Test
-    void exceptionFromSuccessHandlerIsPassedToFailHandler() throws InterruptedException {
+    void exceptionFromSuccessHandlerIsPassedToFailHandler() {
         final LockingException failure = new LockingException("success handler failed");
         doThrow(failure).when(onSuccess).run();
         final AppLocker locker = register(builder().onSuccess(onSuccess).onFail(onFail));

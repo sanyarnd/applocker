@@ -10,7 +10,7 @@ final class LockHolderProcess {
 
     private LockHolderProcess() {}
 
-    public static void main(final String[] args) throws InterruptedException, IOException {
+    public static void main(final String[] args) throws IOException {
         final AppLocker locker = AppLocker.create(args[1])
                 .setPath(Paths.get(args[0]))
                 .setMessageHandler((MessageHandler<String, String>) message -> "pong:" + message)
