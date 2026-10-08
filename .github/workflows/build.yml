@@ -14,8 +14,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build (${{ matrix.os }}, tests on JDK ${{ matrix.test-java }})
+  test:
+    name: Test (${{ matrix.os }}, JDK ${{ matrix.test-java }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -62,7 +62,7 @@ jobs:
             build/test-results/
           if-no-files-found: ignore
 
-  publish-snapshot-check:
+  publication:
     name: Verify publication
     runs-on: ubuntu-latest
     steps:
@@ -87,4 +87,22 @@ jobs:
           ls -R "$dir"
           for suffix in .jar -sources.jar -javadoc.jar .pom .module; do
             ls "$dir"/*/app-locker-*"$suffix" > /dev/null
+          done
+
+  # single required status check for branch protection, independent of the matrix layout
+  build:
+    name: Build
+    if: always()
+    needs: [ test, publication ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: $RESULTS"
+          for result in $RESULTS; do
+            if [ "$result" != "success" ]; then
+              exit 1
+            fi
           done
