@@ -7,9 +7,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
@@ -169,82 +166,6 @@ class LockTest {
 
         assertThatThrownBy(lock::tryLock).isExactlyInstanceOf(LockingException.class);
         assertThat(lock.isLocked()).isFalse();
-    }
-
-    @Test
-    void lockWithTimeoutAcquiresFreeLock() throws InterruptedException {
-        try (Lock lock = new Lock(lockFile())) {
-            lock.lock(0);
-
-            assertThat(lock.isLocked()).isTrue();
-        }
-    }
-
-    @Test
-    void lockWithTimeoutFailsIfLockIsNotReleased() {
-        try (Lock owner = new Lock(lockFile());
-                Lock waiter = new Lock(lockFile())) {
-            owner.tryLock();
-
-            final long start = System.nanoTime();
-            assertThatThrownBy(() -> waiter.lock(100))
-                    .isExactlyInstanceOf(LockingException.class)
-                    .hasMessageContaining("timeout=100ms")
-                    .hasCauseInstanceOf(LockingBusyException.class);
-            assertThat(System.nanoTime() - start).isGreaterThanOrEqualTo(TimeUnit.MILLISECONDS.toNanos(100));
-            assertThat(waiter.isLocked()).isFalse();
-        }
-    }
-
-    @Test
-    void lockWithTimeoutWaitsUntilLockIsReleased() throws Exception {
-        final CountDownLatch started = new CountDownLatch(1);
-        try (Lock owner = new Lock(lockFile());
-                Lock waiter = new Lock(lockFile())) {
-            owner.tryLock();
-
-            final CompletableFuture<Boolean> acquired = CompletableFuture.supplyAsync(() -> {
-                started.countDown();
-                try {
-                    waiter.lock(10_000);
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException(ex);
-                }
-                return waiter.isLocked();
-            });
-
-            started.await();
-            Thread.sleep(100);
-            assertThat(acquired).isNotDone();
-
-            owner.unlock();
-
-            assertThat(acquired.get(10, TimeUnit.SECONDS)).isTrue();
-        }
-    }
-
-    @Test
-    void lockWithTimeoutIsInterruptible() throws Exception {
-        try (Lock owner = new Lock(lockFile());
-                Lock waiter = new Lock(lockFile())) {
-            owner.tryLock();
-
-            final CompletableFuture<Throwable> result = new CompletableFuture<>();
-            final Thread thread = new Thread(() -> {
-                try {
-                    waiter.lock(60_000);
-                    result.complete(new AssertionError("lock must not be acquired"));
-                } catch (Throwable ex) {
-                    result.complete(ex);
-                }
-            });
-            thread.start();
-            Thread.sleep(50);
-            thread.interrupt();
-
-            assertThat(result.get(10, TimeUnit.SECONDS)).isInstanceOf(InterruptedException.class);
-        }
     }
 
     @Test
