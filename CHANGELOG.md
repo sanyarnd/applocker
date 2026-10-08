@@ -3,6 +3,7 @@
 - `AppLocker#lock`, `#unlock` and `#close` no longer throw checked exceptions
 - No global lock: lockers with different ids no longer wait for each other
 - Messages are strings (UTF-8, up to 1 MiB) instead of Java serialization
+- `Builder#setMessageTimeout` (default 30 seconds)
 - The message server only accepts clients that can read the port file (random token)
 - No runtime dependencies: `slf4j-api` replaced with `System.Logger`, JetBrains annotations with JSpecify
 - Message server listens on loopback only

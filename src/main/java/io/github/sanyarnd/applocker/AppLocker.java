@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.time.Duration;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
@@ -32,6 +33,7 @@ public final class AppLocker implements AutoCloseable {
     private final String lockId;
     private final Lock appLock;
     private final Path portFile;
+    private final int messageTimeoutMs;
     private final @Nullable Server server;
     private final Runnable acquiredHandler;
     private final @Nullable BiConsumer<AppLocker, LockingBusyException> busyHandler;
@@ -42,6 +44,7 @@ public final class AppLocker implements AutoCloseable {
             final Path lockPath,
             final LockIdEncoder idEncoder,
             final @Nullable Server messageServer,
+            final Duration messageTimeout,
             final Runnable onAcquire,
             final @Nullable BiConsumer<AppLocker, LockingBusyException> onBusy,
             final Consumer<LockingException> onFail) {
@@ -50,12 +53,21 @@ public final class AppLocker implements AutoCloseable {
 
         lockId = nameId;
         server = messageServer;
+        messageTimeoutMs = toSocketTimeout(messageTimeout);
         acquiredHandler = onAcquire;
         busyHandler = onBusy;
         failedHandler = onFail;
 
         appLock = new Lock(newLockFile(path, LOCK_NAME_PATTERN, encodedId));
         portFile = newLockFile(path, LOCK_PORT_PATTERN, encodedId);
+    }
+
+    // 0 means "no timeout" for sockets
+    private static int toSocketTimeout(final Duration timeout) {
+        if (timeout.compareTo(Duration.ofMillis(Integer.MAX_VALUE)) >= 0) {
+            return Integer.MAX_VALUE;
+        }
+        return (int) Math.max(1, timeout.toMillis());
     }
 
     /// Create the AppLocker builder.
@@ -206,7 +218,7 @@ public final class AppLocker implements AutoCloseable {
         }
         final byte[] token = new byte[Protocol.TOKEN_BYTES];
         buffer.get(token);
-        return new Client(port, token);
+        return new Client(port, token, messageTimeoutMs);
     }
 
     /// AppLocker builder.
@@ -217,6 +229,7 @@ public final class AppLocker implements AutoCloseable {
         private Path path = Paths.get("");
         private LockIdEncoder encoder = new Sha1Encoder();
         private @Nullable MessageHandler messageHandler;
+        private Duration messageTimeout = Duration.ofSeconds(30);
         private Runnable acquiredHandler = () -> {};
         private Consumer<LockingException> failedHandler = ex -> {
             throw ex;
@@ -251,6 +264,21 @@ public final class AppLocker implements AutoCloseable {
         /// @return builder
         public Builder setMessageHandler(final MessageHandler handler) {
             messageHandler = handler;
+            return this;
+        }
+
+        /// Sets how long [AppLocker#sendMessage(String)] waits for the answer.
+        ///
+        /// Default value is 30 seconds.
+        ///
+        /// @param timeout positive timeout
+        /// @return builder
+        /// @throws IllegalArgumentException if the timeout is not positive
+        public Builder setMessageTimeout(final Duration timeout) {
+            if (timeout.isNegative() || timeout.isZero()) {
+                throw new IllegalArgumentException("Message timeout must be positive: " + timeout);
+            }
+            messageTimeout = timeout;
             return this;
         }
 
@@ -333,7 +361,8 @@ public final class AppLocker implements AutoCloseable {
         public AppLocker build() {
             final Server server = messageHandler != null ? new Server(messageHandler) : null;
 
-            return new AppLocker(id, path, encoder, server, acquiredHandler, busyHandler, failedHandler);
+            return new AppLocker(
+                    id, path, encoder, server, messageTimeout, acquiredHandler, busyHandler, failedHandler);
         }
     }
 }
