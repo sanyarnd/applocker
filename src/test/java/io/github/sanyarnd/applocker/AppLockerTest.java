@@ -79,28 +79,25 @@ class AppLockerTest {
     }
 
     @Test
-    void lockAcquiresLock() {
+    void tryLockAcquiresLock() {
         final AppLocker locker = locker(ID);
 
-        locker.lock();
-
+        assertThat(locker.tryLock()).isTrue();
         assertThat(locker.isLocked()).isTrue();
     }
 
     @Test
-    void lockIsReentrant() {
+    void tryLockIsReentrant() {
         final AppLocker locker = locker(ID);
 
-        locker.lock();
-        locker.lock();
-
-        assertThat(locker.isLocked()).isTrue();
+        assertThat(locker.tryLock()).isTrue();
+        assertThat(locker.tryLock()).isTrue();
     }
 
     @Test
     void unlockReleasesLock() {
         final AppLocker locker = locker(ID);
-        locker.lock();
+        locker.tryLock();
 
         locker.unlock();
 
@@ -111,7 +108,7 @@ class AppLockerTest {
     void closeReleasesLock() {
         final AppLocker locker = locker(ID);
         try (AppLocker l = locker) {
-            l.lock();
+            l.tryLock();
         }
 
         assertThat(locker.isLocked()).isFalse();
@@ -127,7 +124,7 @@ class AppLockerTest {
         final AppLocker locker = locker(ID);
 
         for (int i = 0; i < 5; ++i) {
-            locker.lock();
+            locker.tryLock();
             assertThat(locker.isLocked()).isTrue();
             locker.unlock();
             assertThat(locker.isLocked()).isFalse();
@@ -138,9 +135,9 @@ class AppLockerTest {
     void secondLockerWithSameIdIsBusy() {
         final AppLocker first = locker(ID);
         final AppLocker second = locker(ID);
-        first.lock();
+        first.tryLock();
 
-        assertThatThrownBy(second::lock).isInstanceOf(LockingBusyException.class);
+        assertThat(second.tryLock()).isFalse();
         assertThat(first.isLocked()).isTrue();
         assertThat(second.isLocked()).isFalse();
     }
@@ -149,10 +146,10 @@ class AppLockerTest {
     void lockCanBeTakenOverAfterUnlock() {
         final AppLocker first = locker(ID);
         final AppLocker second = locker(ID);
-        first.lock();
+        first.tryLock();
         first.unlock();
 
-        second.lock();
+        second.tryLock();
 
         assertThat(second.isLocked()).isTrue();
     }
@@ -162,8 +159,8 @@ class AppLockerTest {
         final AppLocker first = locker(firstId);
         final AppLocker second = locker(secondId + "-other");
 
-        first.lock();
-        second.lock();
+        first.tryLock();
+        second.tryLock();
 
         assertThat(first.isLocked()).isTrue();
         assertThat(second.isLocked()).isTrue();
@@ -176,8 +173,8 @@ class AppLockerTest {
                 .setPath(Files.createDirectory(tempDir.resolve("other")))
                 .build());
 
-        first.lock();
-        second.lock();
+        first.tryLock();
+        second.tryLock();
 
         assertThat(first.isLocked()).isTrue();
         assertThat(second.isLocked()).isTrue();
@@ -190,7 +187,7 @@ class AppLockerTest {
                 .thenAnswer(inv -> "custom-" + inv.getArgument(0, String.class).length());
         final AppLocker locker = register(builder(ID).setIdEncoder(encoder).build());
 
-        locker.lock();
+        locker.tryLock();
 
         verify(encoder).encode(ID);
         assertThat(tempDir.resolve(".custom-" + ID.length() + ".lock")).exists();
@@ -201,7 +198,7 @@ class AppLockerTest {
         final Path file = Files.createFile(tempDir.resolve("not-a-directory"));
         final AppLocker locker = register(AppLocker.create(ID).setPath(file).build());
 
-        assertThatThrownBy(locker::lock).isExactlyInstanceOf(LockingException.class);
+        assertThatThrownBy(locker::tryLock).isExactlyInstanceOf(LockingException.class);
         assertThat(locker.isLocked()).isFalse();
     }
 
@@ -210,7 +207,7 @@ class AppLockerTest {
         final Path dir = tempDir.resolve("nested").resolve("dir");
         final AppLocker locker = register(AppLocker.create(ID).setPath(dir).build());
 
-        locker.lock();
+        locker.tryLock();
 
         assertThat(dir).isDirectory();
     }
@@ -218,7 +215,7 @@ class AppLockerTest {
     @Test
     void sendsMessageToSelf() {
         final AppLocker locker = echoLocker(ID);
-        locker.lock();
+        locker.tryLock();
 
         final String answer = locker.sendMessage("self");
 
@@ -229,7 +226,7 @@ class AppLockerTest {
     void sendsMessageToLockOwner(@Given final String message) {
         final AppLocker owner = echoLocker(ID);
         final AppLocker other = locker(ID);
-        owner.lock();
+        owner.tryLock();
 
         final String answer = other.sendMessage(message);
 
@@ -245,7 +242,7 @@ class AppLockerTest {
                             return m;
                         })
                         .build())
-                .lock();
+                .tryLock();
         final AppLocker sender =
                 register(builder(ID).setMessageTimeout(Duration.ofMillis(100)).build());
 
@@ -269,7 +266,7 @@ class AppLockerTest {
 
     @Test
     void acceptsHugeMessageTimeout() {
-        echoLocker(ID).lock();
+        echoLocker(ID).tryLock();
         final AppLocker sender =
                 register(builder(ID).setMessageTimeout(Duration.ofDays(36_500)).build());
 
@@ -296,7 +293,7 @@ class AppLockerTest {
     @Test
     void sendMessageFailsIfOwnerHasNoMessageHandler() {
         final AppLocker owner = locker(ID);
-        owner.lock();
+        owner.tryLock();
 
         assertThatThrownBy(() -> locker(ID).sendMessage("hello")).isExactlyInstanceOf(LockingException.class);
     }
@@ -322,7 +319,7 @@ class AppLockerTest {
     @Test
     void portFileIsReadableByOwnerOnly() throws IOException {
         assumeTrue(FileSystems.getDefault().supportedFileAttributeViews().contains("posix"));
-        echoLocker(ID).lock();
+        echoLocker(ID).tryLock();
 
         assertThat(Files.getPosixFilePermissions(portFile(ID)))
                 .containsExactlyInAnyOrder(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE);
@@ -331,11 +328,11 @@ class AppLockerTest {
     @Test
     void newTokenIsGeneratedOnEveryLock() throws IOException {
         final AppLocker locker = echoLocker(ID);
-        locker.lock();
+        locker.tryLock();
         final byte[] first = token();
         locker.unlock();
 
-        locker.lock();
+        locker.tryLock();
 
         assertThat(token()).isNotEqualTo(first);
     }
@@ -343,7 +340,7 @@ class AppLockerTest {
     @Test
     void unlockRemovesPortFile() {
         final AppLocker locker = echoLocker(ID);
-        locker.lock();
+        locker.tryLock();
         assertThat(portFile(ID)).exists();
 
         locker.unlock();
@@ -354,10 +351,9 @@ class AppLockerTest {
     @Test
     void unlockByNonOwnerDoesNotBreakOwner() {
         final AppLocker owner = echoLocker(ID);
-        final AppLocker other =
-                register(builder(ID).setMessageHandler(m -> m).onFail(() -> {}).build());
-        owner.lock();
-        other.lock();
+        final AppLocker other = register(builder(ID).setMessageHandler(m -> m).build());
+        owner.tryLock();
+        other.tryLock();
 
         other.unlock();
 
@@ -373,11 +369,11 @@ class AppLockerTest {
         final AppLocker second =
                 register(builder(ID).setMessageHandler(m -> "second").build());
 
-        first.lock();
+        first.tryLock();
         assertThat(second.sendMessage("who?")).isEqualTo("first");
 
         first.unlock();
-        second.lock();
+        second.tryLock();
         assertThat(first.sendMessage("who?")).isEqualTo("second");
     }
 
@@ -387,13 +383,13 @@ class AppLockerTest {
         Files.createFile(Files.createDirectory(portFile(ID)).resolve("blocker"));
         final AppLocker locker = echoLocker(ID);
 
-        assertThatThrownBy(locker::lock)
+        assertThatThrownBy(locker::tryLock)
                 .isExactlyInstanceOf(LockingException.class)
                 .hasMessageContaining("message server");
         assertThat(locker.isLocked()).isFalse();
 
         final AppLocker plain = locker(ID);
-        plain.lock();
+        plain.tryLock();
         assertThat(plain.isLocked()).isTrue();
     }
 

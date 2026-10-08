@@ -1,7 +1,6 @@
 package io.github.sanyarnd.applocker;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -69,7 +68,7 @@ class CrossProcessTest {
 
     @Test
     void lockIsBusyWhileOtherProcessHoldsIt() {
-        assertThatThrownBy(locker::lock).isInstanceOf(LockingBusyException.class);
+        assertThat(locker.tryLock()).isFalse();
         assertThat(locker.isLocked()).isFalse();
     }
 
@@ -85,7 +84,7 @@ class CrossProcessTest {
         holder.getOutputStream().close();
         assertThat(holder.waitFor(30, TimeUnit.SECONDS)).isTrue();
 
-        locker.lock();
+        locker.tryLock();
 
         assertThat(locker.isLocked()).isTrue();
     }
@@ -97,16 +96,9 @@ class CrossProcessTest {
 
         // Windows releases locks of a terminated process asynchronously
         final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
-        while (true) {
-            try {
-                locker.lock();
-                break;
-            } catch (LockingBusyException ex) {
-                assertThat(System.nanoTime() - deadline)
-                        .as("lock is still busy")
-                        .isNegative();
-                Thread.sleep(50);
-            }
+        while (!locker.tryLock()) {
+            assertThat(System.nanoTime() - deadline).as("lock is still busy").isNegative();
+            Thread.sleep(50);
         }
 
         assertThat(locker.isLocked()).isTrue();
