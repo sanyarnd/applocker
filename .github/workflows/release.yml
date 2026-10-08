@@ -18,6 +18,9 @@ jobs:
     name: Publish ${{ github.ref_name }}
     runs-on: ubuntu-latest
     environment: release
+    env:
+      ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+      ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -37,21 +40,15 @@ jobs:
       - name: Build
         run: ./gradlew build -Pversion=${{ github.ref_name }} --stacktrace
 
-      - name: Publish to Maven Central and GitHub Packages
+      - name: Publish to GitHub Packages
         env:
-          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
-          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_PRIVATE_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_KEY_PASSPHRASE }}
           ORG_GRADLE_PROJECT_GitHubPackagesUsername: ${{ github.actor }}
           ORG_GRADLE_PROJECT_GitHubPackagesPassword: ${{ secrets.GITHUB_TOKEN }}
         run: >
-          ./gradlew
-          publishToMavenCentral
-          publishAllPublicationsToGitHubPackagesRepository
-          -Pversion=${{ github.ref_name }}
-          --no-configuration-cache
-          --stacktrace
+          ./gradlew publishAllPublicationsToGitHubPackagesRepository
+          -Pversion=${{ github.ref_name }} --no-configuration-cache --stacktrace
 
       - name: Create GitHub release
         env:
@@ -62,3 +59,13 @@ jobs:
           --title "${{ github.ref_name }}"
           --generate-notes
           --verify-tag
+          ${{ contains(github.ref_name, '-') && '--prerelease' || '' }}
+
+      - name: Publish to Maven Central
+        if: env.ORG_GRADLE_PROJECT_mavenCentralUsername != ''
+        env:
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_PRIVATE_KEY }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_KEY_PASSPHRASE }}
+        run: >
+          ./gradlew publishToMavenCentral
+          -Pversion=${{ github.ref_name }} --no-configuration-cache --stacktrace

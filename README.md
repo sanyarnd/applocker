@@ -42,13 +42,13 @@ Maven:
 <dependency>
     <groupId>io.github.sanyarnd</groupId>
     <artifactId>app-locker</artifactId>
-    <version>1.2.0</version>
+    <version>2.0.0</version>
 </dependency>
 ```
 
 Gradle:
 ```kotlin
-implementation("io.github.sanyarnd:app-locker:1.2.0")
+implementation("io.github.sanyarnd:app-locker:2.0.0")
 ```
 
 Jars are also available in [GitHub Packages](https://github.com/sanyarnd/applocker/packages)

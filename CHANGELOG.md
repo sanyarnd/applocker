@@ -1,4 +1,4 @@
-# 2.0.0 (unreleased)
+# 2.0.0
 - Java 11+
 - `AppLocker#unlock` and `#close` no longer throw checked exceptions
 - No global lock: lockers with different ids no longer wait for each other
