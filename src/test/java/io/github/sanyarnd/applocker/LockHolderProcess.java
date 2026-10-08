@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Paths;
 
-/** Holds the lock in a separate JVM until stdin is closed. */
+/// Holds the lock in a separate JVM until stdin is closed.
 final class LockHolderProcess {
     static final String READY = "LOCKED";
 

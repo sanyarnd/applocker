@@ -17,13 +17,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import org.jspecify.annotations.Nullable;
 
-/**
- * Socket-based server, accepts connections on the loopback interface only.
- *
- * @param <I> receive message type
- * @param <O> response message type
- * @author Alexander Biryukov
- */
+/// Socket-based server, accepts connections on the loopback interface only.
+///
+/// @param <I> receive message type
+/// @param <O> response message type
+/// @author Alexander Biryukov
 final class Server<I extends Serializable, O extends Serializable> implements AutoCloseable {
     private static final Logger LOG = System.getLogger(Server.class.getName());
     private static final int REQUEST_TIMEOUT_MS = 5_000;
@@ -43,12 +41,10 @@ final class Server<I extends Serializable, O extends Serializable> implements Au
         });
     }
 
-    /**
-     * Open the server socket and start accepting connections in background.
-     *
-     * @return server port
-     * @throws LockingException if the server is already running or the socket cannot be opened
-     */
+    /// Open the server socket and start accepting connections in background.
+    ///
+    /// @return server port
+    /// @throws LockingException if the server is already running or the socket cannot be opened
     synchronized int start() {
         if (socket != null) {
             throw new LockingException("The server is already running");
@@ -95,12 +91,10 @@ final class Server<I extends Serializable, O extends Serializable> implements Au
         LOG.log(Level.DEBUG, "Message server stopped");
     }
 
-    /**
-     * Get server's socket port.
-     *
-     * @return port
-     * @throws LockingException if the server is not running
-     */
+    /// Get server's socket port.
+    ///
+    /// @return port
+    /// @throws LockingException if the server is not running
     synchronized int getPort() {
         if (socket == null) {
             throw new LockingException("Message server is not running");

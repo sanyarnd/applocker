@@ -16,14 +16,12 @@ import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import org.jspecify.annotations.Nullable;
 
-/**
- * File-channel based lock.
- *
- * <p>The lock file is not deleted on {@link #unlock()}: otherwise another process could lock a new file with the same
- * name while the deleted one is still locked.
- *
- * @author Alexander Biryukov
- */
+/// File-channel based lock.
+///
+/// The lock file is not deleted on [#unlock()]: otherwise another process could lock a new file with the same
+/// name while the deleted one is still locked.
+///
+/// @author Alexander Biryukov
 public final class Lock implements AutoCloseable {
     private static final Logger LOG = System.getLogger(Lock.class.getName());
     private static final long LOCK_SLEEP_MS = 10;
@@ -32,11 +30,9 @@ public final class Lock implements AutoCloseable {
     private @Nullable FileChannel channel;
     private @Nullable FileLock fileLock;
 
-    /**
-     * Create a lock.
-     *
-     * @param f lock file
-     */
+    /// Create a lock.
+    ///
+    /// @param f lock file
     public Lock(final Path f) {
         file = f.toAbsolutePath();
     }
@@ -46,15 +42,13 @@ public final class Lock implements AutoCloseable {
         unlock();
     }
 
-    /**
-     * Tries to acquire the lock and ignores any {@link LockingBusyException} during the process.
-     *
-     * <p>Be aware that it's easy to get a spin lock if the other Lock won't call {@link #close()}.
-     *
-     * @param timeoutMs timeout in milliseconds
-     * @throws LockingException lock exceeded timeout
-     * @throws InterruptedException if the thread was interrupted while waiting for the lock
-     */
+    /// Tries to acquire the lock and ignores any [LockingBusyException] during the process.
+    ///
+    /// Be aware that it's easy to get a spin lock if the other Lock won't call [#close()].
+    ///
+    /// @param timeoutMs timeout in milliseconds
+    /// @throws LockingException lock exceeded timeout
+    /// @throws InterruptedException if the thread was interrupted while waiting for the lock
     public synchronized void lock(final long timeoutMs) throws InterruptedException {
         final long start = System.nanoTime();
         final long timeoutNs = TimeUnit.MILLISECONDS.toNanos(timeoutMs);
@@ -71,11 +65,9 @@ public final class Lock implements AutoCloseable {
         }
     }
 
-    /**
-     * Unlock the lock.
-     *
-     * <p>Does nothing if the lock is not locked.
-     */
+    /// Unlock the lock.
+    ///
+    /// Does nothing if the lock is not locked.
     public synchronized void unlock() {
         final FileChannel ch = channel;
         channel = null;
@@ -89,14 +81,12 @@ public final class Lock implements AutoCloseable {
         closeQuietly(ch);
     }
 
-    /**
-     * Attempt to lock the file.
-     *
-     * <p>Does nothing if the lock is already held by this instance.
-     *
-     * @throws LockingException if any error occurred during the locking process (I/O exception)
-     * @throws LockingBusyException if a lock is already taken by someone
-     */
+    /// Attempt to lock the file.
+    ///
+    /// Does nothing if the lock is already held by this instance.
+    ///
+    /// @throws LockingException if any error occurred during the locking process (I/O exception)
+    /// @throws LockingBusyException if a lock is already taken by someone
     public synchronized void tryLock() {
         if (isLocked()) {
             return;
@@ -152,11 +142,9 @@ public final class Lock implements AutoCloseable {
         }
     }
 
-    /**
-     * Check whether lock is currently in use.
-     *
-     * @return true if locked, false otherwise
-     */
+    /// Check whether lock is currently in use.
+    ///
+    /// @return true if locked, false otherwise
     public synchronized boolean isLocked() {
         return channel != null && fileLock != null && channel.isOpen() && fileLock.isValid();
     }

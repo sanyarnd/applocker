@@ -1,8 +1,6 @@
-/**
- * AppLocker library.
- *
- * @author Alexander Biryukov
- */
+/// AppLocker library.
+///
+/// @author Alexander Biryukov
 @NullMarked
 package io.github.sanyarnd.applocker;
 

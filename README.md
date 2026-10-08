@@ -79,7 +79,7 @@ Jars are also available in [GitHub Packages](https://github.com/sanyarnd/applock
 and on the [releases](https://github.com/sanyarnd/applocker/releases) page.
 
 # Building
-Requires JDK 21+:
+Requires JDK 25:
 ```shell
 ./gradlew build
 ./gradlew spotlessApply
