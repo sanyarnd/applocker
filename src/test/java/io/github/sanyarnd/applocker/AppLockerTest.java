@@ -3,16 +3,19 @@ package io.github.sanyarnd.applocker;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.io.Serializable;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.instancio.junit.Given;
 import org.instancio.junit.InstancioExtension;
@@ -53,9 +56,13 @@ class AppLockerTest {
         return register(builder(id).build());
     }
 
-    private <T extends Serializable> AppLocker echoLocker(final String id) {
-        return register(
-                builder(id).setMessageHandler((MessageHandler<T, T>) m -> m).build());
+    private AppLocker echoLocker(final String id) {
+        return register(builder(id).setMessageHandler(m -> m).build());
+    }
+
+    private byte[] token() throws IOException {
+        final byte[] bytes = Files.readAllBytes(portFile(ID));
+        return Arrays.copyOfRange(bytes, Integer.BYTES, bytes.length);
     }
 
     private Path portFile(final String id) {
@@ -253,11 +260,32 @@ class AppLockerTest {
 
     @Test
     void sendMessageFailsOnInvalidPort() throws IOException {
-        Files.write(portFile(ID), new byte[] {0, 0, 0, 0});
+        Files.write(portFile(ID), new byte[Integer.BYTES + Protocol.TOKEN_BYTES]);
 
         assertThatThrownBy(() -> locker(ID).sendMessage("hello"))
                 .isExactlyInstanceOf(LockingException.class)
                 .hasMessageContaining("invalid port");
+    }
+
+    @Test
+    void portFileIsReadableByOwnerOnly() throws IOException {
+        assumeTrue(FileSystems.getDefault().supportedFileAttributeViews().contains("posix"));
+        echoLocker(ID).lock();
+
+        assertThat(Files.getPosixFilePermissions(portFile(ID)))
+                .containsExactlyInAnyOrder(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE);
+    }
+
+    @Test
+    void newTokenIsGeneratedOnEveryLock() throws IOException {
+        final AppLocker locker = echoLocker(ID);
+        locker.lock();
+        final byte[] first = token();
+        locker.unlock();
+
+        locker.lock();
+
+        assertThat(token()).isNotEqualTo(first);
     }
 
     @Test
@@ -274,10 +302,8 @@ class AppLockerTest {
     @Test
     void unlockByNonOwnerDoesNotBreakOwner() {
         final AppLocker owner = echoLocker(ID);
-        final AppLocker other = register(builder(ID)
-                .setMessageHandler((MessageHandler<String, String>) m -> m)
-                .onFail(() -> {})
-                .build());
+        final AppLocker other =
+                register(builder(ID).setMessageHandler(m -> m).onFail(() -> {}).build());
         owner.lock();
         other.lock();
 
@@ -285,24 +311,22 @@ class AppLockerTest {
 
         assertThat(owner.isLocked()).isTrue();
         assertThat(portFile(ID)).exists();
-        assertThat(other.<String, String>sendMessage("still there")).isEqualTo("still there");
+        assertThat(other.sendMessage("still there")).isEqualTo("still there");
     }
 
     @Test
     void messagesAreRoutedToNewOwnerAfterTakeover() {
-        final AppLocker first = register(builder(ID)
-                .setMessageHandler((MessageHandler<String, String>) m -> "first")
-                .build());
-        final AppLocker second = register(builder(ID)
-                .setMessageHandler((MessageHandler<String, String>) m -> "second")
-                .build());
+        final AppLocker first =
+                register(builder(ID).setMessageHandler(m -> "first").build());
+        final AppLocker second =
+                register(builder(ID).setMessageHandler(m -> "second").build());
 
         first.lock();
-        assertThat(second.<String, String>sendMessage("who?")).isEqualTo("first");
+        assertThat(second.sendMessage("who?")).isEqualTo("first");
 
         first.unlock();
         second.lock();
-        assertThat(first.<String, String>sendMessage("who?")).isEqualTo("second");
+        assertThat(first.sendMessage("who?")).isEqualTo("second");
     }
 
     @Test

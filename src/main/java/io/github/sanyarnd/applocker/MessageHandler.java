@@ -1,16 +1,11 @@
 package io.github.sanyarnd.applocker;
 
-import java.io.Serializable;
-
-/// Interface for the function that runs on the server side and handles all incoming messages.
-///
-/// @param <I> message type
-/// @param <O> answer type
+/// Function that runs on the lock owner side and handles all incoming messages.
 @FunctionalInterface
-public interface MessageHandler<I extends Serializable, O extends Serializable> {
-    /// Handle the received message and return the result.
+public interface MessageHandler {
+    /// Handle the received message and return the answer.
     ///
     /// @param message input message
-    /// @return result of the message processing
-    O handleMessage(I message);
+    /// @return answer to the sender
+    String handleMessage(String message);
 }

@@ -1,9 +1,8 @@
 package io.github.sanyarnd.applocker;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.net.InetAddress;
@@ -12,6 +11,7 @@ import java.net.Socket;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.security.MessageDigest;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -19,20 +19,18 @@ import org.jspecify.annotations.Nullable;
 
 /// Socket-based server, accepts connections on the loopback interface only.
 ///
-/// @param <I> receive message type
-/// @param <O> response message type
 /// @author Alexander Biryukov
-final class Server<I extends Serializable, O extends Serializable> implements AutoCloseable {
+final class Server implements AutoCloseable {
     private static final Logger LOG = System.getLogger(Server.class.getName());
     private static final int REQUEST_TIMEOUT_MS = 5_000;
 
-    private final MessageHandler<I, O> messageHandler;
+    private final MessageHandler messageHandler;
     private final ExecutorService executor;
     private @Nullable ServerSocketChannel socket;
     private @Nullable Future<?> loop;
     private int port = -1;
 
-    Server(final MessageHandler<I, O> handler) {
+    Server(final MessageHandler handler) {
         messageHandler = handler;
         executor = Executors.newSingleThreadExecutor(r -> {
             final Thread t = new Thread(r, "AppLocker MessageServer");
@@ -43,9 +41,10 @@ final class Server<I extends Serializable, O extends Serializable> implements Au
 
     /// Open the server socket and start accepting connections in background.
     ///
+    /// @param clientToken token every client must send before the message
     /// @return server port
     /// @throws LockingException if the server is already running or the socket cannot be opened
-    synchronized int start() {
+    synchronized int start(final byte[] clientToken) {
         if (socket != null) {
             throw new LockingException("The server is already running");
         }
@@ -65,7 +64,8 @@ final class Server<I extends Serializable, O extends Serializable> implements Au
         }
 
         socket = channel;
-        loop = executor.submit(() -> acceptLoop(channel));
+        final byte[] expectedToken = clientToken.clone();
+        loop = executor.submit(() -> acceptLoop(channel, expectedToken));
         LOG.log(Level.DEBUG, "Started message server on localhost:{0}", port);
         return port;
     }
@@ -102,10 +102,10 @@ final class Server<I extends Serializable, O extends Serializable> implements Au
         return port;
     }
 
-    private void acceptLoop(final ServerSocketChannel channel) {
+    private void acceptLoop(final ServerSocketChannel channel, final byte[] expectedToken) {
         try {
             while (true) {
-                handleConnection(channel.accept());
+                handleConnection(channel.accept(), expectedToken);
             }
         } catch (ClosedChannelException ex) {
             LOG.log(Level.DEBUG, "Message server socket closed");
@@ -115,17 +115,22 @@ final class Server<I extends Serializable, O extends Serializable> implements Au
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private void handleConnection(final SocketChannel channel) {
+    private void handleConnection(final SocketChannel channel, final byte[] expectedToken) {
         try (SocketChannel ch = channel;
                 Socket connSocket = withTimeout(ch.socket());
-                ObjectOutputStream oos = new ObjectOutputStream(connSocket.getOutputStream());
-                ObjectInputStream ois = new ObjectInputStream(connSocket.getInputStream())) {
+                DataInputStream input = new DataInputStream(connSocket.getInputStream());
+                DataOutputStream output = new DataOutputStream(connSocket.getOutputStream())) {
             LOG.log(Level.DEBUG, "New connection from localhost:{0}", connSocket.getPort());
 
-            final I message = (I) ois.readObject();
-            LOG.log(Level.DEBUG, "Incoming message: {0}", message);
-            final O response;
+            final byte[] clientToken = new byte[Protocol.TOKEN_BYTES];
+            input.readFully(clientToken);
+            if (!MessageDigest.isEqual(clientToken, expectedToken)) {
+                LOG.log(Level.WARNING, "Rejected connection with invalid token");
+                return;
+            }
+
+            final String message = Protocol.readMessage(input);
+            final String response;
             try {
                 response = messageHandler.handleMessage(message);
             } catch (RuntimeException ex) {
@@ -133,9 +138,8 @@ final class Server<I extends Serializable, O extends Serializable> implements Au
                 LOG.log(Level.ERROR, () -> "Error during processing message " + message, ex);
                 return;
             }
-            LOG.log(Level.DEBUG, "Calculated response: {0}", response);
-            oos.writeObject(response);
-        } catch (IOException | ClassNotFoundException ex) {
+            Protocol.writeMessage(output, response);
+        } catch (IOException | LockingException ex) {
             LOG.log(Level.WARNING, "Unable to process incoming message", ex);
         }
     }

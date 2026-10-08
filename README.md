@@ -7,7 +7,7 @@ AppLocker is a small library which provides the often missing single instance fu
 
 # Features
 * Safe: based on file channel locking, lock will be released even in case of power outage
-* An arbitrary `AppLocker` has the ability to communicate with the `AppLocker` which currently owns the lock
+* An arbitrary `AppLocker` can send a string message to the `AppLocker` which currently owns the lock
 * Lightweight (~20kb) 
 * No transitive dependencies
 * JDK 11+ support
