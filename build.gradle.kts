@@ -10,8 +10,6 @@ plugins {
     alias(libs.plugins.maven.publish)
 }
 
-val testJavaVersion: Provider<String> = providers.gradleProperty("testJavaVersion")
-
 val mockitoAgent: Configuration by configurations.creating { isTransitive = false }
 
 dependencies {
@@ -49,11 +47,6 @@ tasks.compileJava {
     options.release = 11
 }
 
-tasks.compileTestJava {
-    // JUnit 6 and Mockito 5 require Java 17
-    options.release = 17
-}
-
 tasks.javadoc {
     (options as StandardJavadocDocletOptions).apply {
         addBooleanOption("Xdoclint:all", true)
@@ -73,12 +66,6 @@ tasks.test {
     // JDK 21+ warns when Mockito attaches its agent dynamically
     val agent: FileCollection = mockitoAgent
     jvmArgumentProviders.add(CommandLineArgumentProvider { listOf("-javaagent:${agent.singleFile}") })
-    if (testJavaVersion.isPresent) {
-        javaLauncher =
-            javaToolchains.launcherFor {
-                languageVersion = JavaLanguageVersion.of(testJavaVersion.get())
-            }
-    }
     testLogging {
         events("skipped", "failed")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
