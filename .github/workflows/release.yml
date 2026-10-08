@@ -59,6 +59,7 @@ jobs:
           --title "${{ github.ref_name }}"
           --generate-notes
           --verify-tag
+          ${{ contains(github.ref_name, '-') && '--prerelease' || '' }}
 
       - name: Publish to Maven Central
         if: env.ORG_GRADLE_PROJECT_mavenCentralUsername != ''
