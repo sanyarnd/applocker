@@ -1,0 +1,58 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+.api_download_link {
+  display: block;
+  float: right;
+  width: 90px;
+  height:70px;
+  text-indent: -5000px;
+  overflow: hidden;
+  background: url(../images/sprite_download.png) no-repeat bottom right;
+  margin-left: 10px;
+}
+
+.jar_download_link {
+  display: block;
+  float: right;
+  width: 90px;
+  height:70px;
+  text-indent: -5000px;
+  overflow: hidden;
+  background: url(../images/sprite_download.png) no-repeat bottom center;
+  margin-left: 10px;
+}
+
+.pom_download_link {
+  display: block;
+  float: right;
+  width: 90px;
+  height:70px;
+  text-indent: -5000px;
+  overflow: hidden;
+  background: url(../images/sprite_download.png) no-repeat bottom left;
+}
+
+.api_download_link:hover {
+  background: url(../images/sprite_download.png) no-repeat top right;
+}
+
+.jar_download_link:hover {
+  background: url(../images/sprite_download.png) no-repeat top center;
+}
+
+.pom_download_link:hover {
+  background: url(../images/sprite_download.png) no-repeat top left;
+}
+
+#downloads {
+  position: absolute;
+  width: 310px;
+  z-index: 10;
+  bottom: -40px;
+  right: 0;
+  height: 70px;
+  background: url('../images/icon_download.png') no-repeat 0% 90%;
+}

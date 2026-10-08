@@ -89,6 +89,8 @@ JDK 21+ is required to build the project (the library itself targets Java 11):
 # Releasing
 Push a tag like `2.0.0` and the [Release](.github/workflows/release.yml) workflow publishes
 the artifacts to Maven Central, GitHub Packages and creates a GitHub release.
+The [Pages](.github/workflows/pages.yml) workflow updates the [project site](https://sanyarnd.github.io/applocker/)
+with the README, changelog and javadoc (it can also be started manually).
 
 Required repository secrets:
 
