@@ -14,9 +14,11 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import org.instancio.junit.Given;
 import org.instancio.junit.InstancioExtension;
 import org.junit.jupiter.api.AfterEach;
@@ -25,6 +27,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 @Timeout(value = 30, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
 @ExtendWith(InstancioExtension.class)
@@ -230,6 +234,54 @@ class AppLockerTest {
         final String answer = other.sendMessage(message);
 
         assertThat(answer).isEqualTo(message);
+    }
+
+    @Test
+    void sendMessageFailsIfOwnerDoesNotAnswerInTime() {
+        final CountDownLatch release = new CountDownLatch(1);
+        register(builder(ID)
+                        .setMessageHandler(m -> {
+                            awaitQuietly(release);
+                            return m;
+                        })
+                        .build())
+                .lock();
+        final AppLocker sender =
+                register(builder(ID).setMessageTimeout(Duration.ofMillis(100)).build());
+
+        try {
+            assertThatThrownBy(() -> sender.sendMessage("hello"))
+                    .isExactlyInstanceOf(LockingException.class)
+                    .hasMessageContaining("did not answer in time");
+        } finally {
+            release.countDown();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {0, -1})
+    void rejectsNonPositiveMessageTimeout(final long millis) {
+        final AppLocker.Builder builder = builder(ID);
+
+        assertThatThrownBy(() -> builder.setMessageTimeout(Duration.ofMillis(millis)))
+                .isExactlyInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void acceptsHugeMessageTimeout() {
+        echoLocker(ID).lock();
+        final AppLocker sender =
+                register(builder(ID).setMessageTimeout(Duration.ofDays(36_500)).build());
+
+        assertThat(sender.sendMessage("hello")).isEqualTo("hello");
+    }
+
+    private static void awaitQuietly(final CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Test

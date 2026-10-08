@@ -37,6 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith({MockitoExtension.class, InstancioExtension.class})
 class ServerClientTest {
     private static final byte[] TOKEN = Protocol.newToken();
+    private static final int TIMEOUT_MS = 10_000;
 
     private final List<Server> servers = new ArrayList<>();
 
@@ -59,7 +60,7 @@ class ServerClientTest {
     }
 
     private static Client client(final int port) {
-        return new Client(port, TOKEN);
+        return new Client(port, TOKEN, TIMEOUT_MS);
     }
 
     @RepeatedTest(10)
@@ -110,7 +111,7 @@ class ServerClientTest {
     void rejectsClientWithWrongToken() {
         final int port = startServer(handler);
 
-        assertThatThrownBy(() -> new Client(port, Protocol.newToken()).send("hello"))
+        assertThatThrownBy(() -> new Client(port, Protocol.newToken(), TIMEOUT_MS).send("hello"))
                 .isExactlyInstanceOf(LockingException.class);
         verifyNoInteractions(handler);
     }
@@ -272,7 +273,7 @@ class ServerClientTest {
         for (int i = 0; i < 3; ++i) {
             final byte[] token = Protocol.newToken();
             final int port = server.start(token);
-            assertThat(new Client(port, token).send("ping")).isEqualTo("ok");
+            assertThat(new Client(port, token, TIMEOUT_MS).send("ping")).isEqualTo("ok");
             server.stop();
             assertThatThrownBy(server::getPort).isExactlyInstanceOf(LockingException.class);
         }

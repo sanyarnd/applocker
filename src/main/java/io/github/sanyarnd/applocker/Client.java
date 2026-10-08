@@ -17,16 +17,10 @@ import java.net.SocketTimeoutException;
 final class Client {
     private static final Logger LOG = System.getLogger(Client.class.getName());
     private static final int CONNECT_TIMEOUT_MS = 5_000;
-    // TODO: make configurable
-    private static final int DEFAULT_READ_TIMEOUT_MS = 30_000;
 
     private final int port;
     private final byte[] token;
     private final int readTimeoutMs;
-
-    Client(final int portNumber, final byte[] serverToken) {
-        this(portNumber, serverToken, DEFAULT_READ_TIMEOUT_MS);
-    }
 
     Client(final int portNumber, final byte[] serverToken, final int readTimeout) {
         port = portNumber;
