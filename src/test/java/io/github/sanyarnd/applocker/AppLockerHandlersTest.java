@@ -64,7 +64,7 @@ class AppLockerHandlersTest {
         return locker;
     }
 
-    private AppLocker lockedOwner(final MessageHandler<String, String> handler) {
+    private AppLocker lockedOwner(final MessageHandler handler) {
         final AppLocker owner = register(builder().setMessageHandler(handler));
         owner.lock();
         return owner;
