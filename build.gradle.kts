@@ -95,7 +95,7 @@ spotless {
 mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
     // allows publishToMavenLocal without a key
-    if (providers.gradleProperty("signingInMemoryKey").isPresent) {
+    if (providers.gradleProperty("signingInMemoryKey").getOrElse("").isNotBlank()) {
         signAllPublications()
     }
     coordinates(project.group.toString(), project.name, project.version.toString())
