@@ -30,7 +30,7 @@ class LockTest {
     @Test
     void tryLockAcquiresLock() {
         try (Lock lock = new Lock(lockFile())) {
-            lock.tryLock();
+            assertThat(lock.tryLock()).isTrue();
 
             assertThat(lock.isLocked()).isTrue();
             assertThat(lockFile()).exists();
@@ -40,8 +40,8 @@ class LockTest {
     @Test
     void tryLockIsIdempotent() {
         try (Lock lock = new Lock(lockFile())) {
-            lock.tryLock();
-            lock.tryLock();
+            assertThat(lock.tryLock()).isTrue();
+            assertThat(lock.tryLock()).isTrue();
 
             assertThat(lock.isLocked()).isTrue();
         }
@@ -105,7 +105,7 @@ class LockTest {
                 Lock second = new Lock(lockFile())) {
             first.tryLock();
 
-            assertThatThrownBy(second::tryLock).isInstanceOf(LockingBusyException.class);
+            assertThat(second.tryLock()).isFalse();
             assertThat(first.isLocked()).isTrue();
             assertThat(second.isLocked()).isFalse();
         }
@@ -116,12 +116,11 @@ class LockTest {
         try (Lock first = new Lock(lockFile());
                 Lock second = new Lock(lockFile())) {
             first.tryLock();
-            assertThatThrownBy(second::tryLock).isInstanceOf(LockingBusyException.class);
+            assertThat(second.tryLock()).isFalse();
 
             first.unlock();
-            second.tryLock();
 
-            assertThat(second.isLocked()).isTrue();
+            assertThat(second.tryLock()).isTrue();
         }
     }
 

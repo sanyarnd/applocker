@@ -13,8 +13,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 
 /// The Locker class provides methods for a locking mechanism and encapsulates socket-based message server for IPC.
@@ -35,28 +33,19 @@ public final class AppLocker implements AutoCloseable {
     private final Path portFile;
     private final int messageTimeoutMs;
     private final @Nullable Server server;
-    private final Runnable acquiredHandler;
-    private final @Nullable BiConsumer<AppLocker, LockingBusyException> busyHandler;
-    private final Consumer<LockingException> failedHandler;
 
     private AppLocker(
             final String nameId,
             final Path lockPath,
             final LockIdEncoder idEncoder,
             final @Nullable Server messageServer,
-            final Duration messageTimeout,
-            final Runnable onAcquire,
-            final @Nullable BiConsumer<AppLocker, LockingBusyException> onBusy,
-            final Consumer<LockingException> onFail) {
+            final Duration messageTimeout) {
         final Path path = lockPath.toAbsolutePath();
         final String encodedId = idEncoder.encode(nameId);
 
         lockId = nameId;
         server = messageServer;
         messageTimeoutMs = toSocketTimeout(messageTimeout);
-        acquiredHandler = onAcquire;
-        busyHandler = onBusy;
-        failedHandler = onFail;
 
         appLock = new Lock(newLockFile(path, LOCK_NAME_PATTERN, encodedId));
         portFile = newLockFile(path, LOCK_PORT_PATTERN, encodedId);
@@ -92,30 +81,21 @@ public final class AppLocker implements AutoCloseable {
         unlock();
     }
 
-    /// Acquire the lock.
+    /// Acquire the lock if nobody else holds it.
     ///
-    /// @throws LockingBusyException if lock has already been taken by someone
+    /// @return true if the lock is held by this instance, false if it's held by another one
     /// @throws LockingException if any error has occurred during the locking process (I/O exception)
-    public synchronized void lock() {
+    public synchronized boolean tryLock() {
         if (isLocked()) {
-            return;
+            return true;
         }
-
-        try {
-            lock0();
-        } catch (LockingBusyException ex) {
-            handleLockBusyException(ex);
-        } catch (LockingException ex) {
-            failedHandler.accept(ex);
+        if (!appLock.tryLock()) {
+            return false;
         }
-    }
-
-    private void lock0() {
-        appLock.tryLock();
         if (server != null) {
             startServer(server);
         }
-        acquiredHandler.run();
+        return true;
     }
 
     private void startServer(final Server messageServer) {
@@ -126,19 +106,6 @@ public final class AppLocker implements AutoCloseable {
             messageServer.stop();
             appLock.close();
             throw new LockingException("Unable to start the message server", ex);
-        }
-    }
-
-    private void handleLockBusyException(final LockingBusyException ex) {
-        // if busy != null then prefer busy
-        if (busyHandler != null) {
-            try {
-                busyHandler.accept(this, ex);
-            } catch (LockingException exx) {
-                failedHandler.accept(exx);
-            }
-        } else {
-            failedHandler.accept(ex);
         }
     }
 
@@ -230,11 +197,6 @@ public final class AppLocker implements AutoCloseable {
         private LockIdEncoder encoder = new Sha1Encoder();
         private @Nullable MessageHandler messageHandler;
         private Duration messageTimeout = Duration.ofSeconds(30);
-        private Runnable acquiredHandler = () -> {};
-        private Consumer<LockingException> failedHandler = ex -> {
-            throw ex;
-        };
-        private @Nullable BiConsumer<AppLocker, LockingBusyException> busyHandler;
 
         private Builder(final String lockId) {
             id = lockId;
@@ -292,74 +254,13 @@ public final class AppLocker implements AutoCloseable {
             return this;
         }
 
-        /// Defines a callback if locking was successful.
-        ///
-        /// Default value is empty function.
-        ///
-        /// @param callback function to call after successful locking
-        /// @return builder
-        public Builder onSuccess(final Runnable callback) {
-            acquiredHandler = callback;
-            return this;
-        }
-
-        /// Defines the action for when the lock is already taken.
-        ///
-        /// Default value is null.
-        ///
-        /// @param message message for the lock holder
-        /// @param handler answer processing function
-        /// @return builder
-        public Builder onBusy(final String message, final Consumer<String> handler) {
-            busyHandler = (appLocker, ex) -> handler.accept(appLocker.sendMessage(message));
-            return this;
-        }
-
-        /// Defines the action for when the lock is already taken.
-        ///
-        /// Default value is null.
-        ///
-        /// @param message message for the lock holder
-        /// @param handler answer processing function
-        /// @return builder
-        public Builder onBusy(final String message, final Runnable handler) {
-            busyHandler = (appLocker, ignoredException) -> {
-                appLocker.sendMessage(message);
-                handler.run();
-            };
-            return this;
-        }
-
-        /// Defines the action for when locking is impossible.
-        ///
-        /// Default value is identity function (re-throws exception).
-        ///
-        /// @param handler error processing function
-        /// @return builder
-        public Builder onFail(final Consumer<LockingException> handler) {
-            failedHandler = handler;
-            return this;
-        }
-
-        /// Defines the action for when locking is impossible.
-        ///
-        /// Default value is identity function (re-throws exception).
-        ///
-        /// @param handler error processing function
-        /// @return builder
-        public Builder onFail(final Runnable handler) {
-            failedHandler = ignoredException -> handler.run();
-            return this;
-        }
-
         /// Build AppLocker.
         ///
         /// @return AppLocker instance
         public AppLocker build() {
             final Server server = messageHandler != null ? new Server(messageHandler) : null;
 
-            return new AppLocker(
-                    id, path, encoder, server, messageTimeout, acquiredHandler, busyHandler, failedHandler);
+            return new AppLocker(id, path, encoder, server, messageTimeout);
         }
     }
 }

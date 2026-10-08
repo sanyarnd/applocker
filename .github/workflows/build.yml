@@ -15,48 +15,34 @@ permissions:
 
 jobs:
   test:
-    name: Test (${{ matrix.os }}, JDK ${{ matrix.test-java }})
+    name: Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest ]
-        test-java: [ '17', '21', '25' ]
-        include:
-          - os: windows-latest
-            test-java: '25'
-          - os: macos-latest
-            test-java: '25'
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Set up JDKs
+      - name: Set up JDK
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          # the last one becomes JAVA_HOME
-          java-version: |
-            ${{ matrix.test-java }}
-            25
+          java-version: '25'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
 
       - name: Build
-        shell: bash
-        run: >
-          ./gradlew build --stacktrace
-          -PtestJavaVersion=${{ matrix.test-java }}
-          -Porg.gradle.java.installations.auto-download=false
-          -Porg.gradle.java.installations.fromEnv=JAVA_HOME_${{ matrix.test-java }}_X64
+        run: ./gradlew build --stacktrace
 
       - name: Upload reports
         if: failure()
         uses: actions/upload-artifact@v5
         with:
-          name: reports-${{ matrix.os }}-jdk${{ matrix.test-java }}
+          name: reports-${{ matrix.os }}
           path: build/reports/
 
   publication:

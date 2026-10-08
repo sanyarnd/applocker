@@ -58,13 +58,11 @@ final class Lock implements AutoCloseable {
 
     /// Attempt to lock the file.
     ///
-    /// Does nothing if the lock is already held by this instance.
-    ///
+    /// @return true if the lock is held by this instance, false if it's held by someone else
     /// @throws LockingException if any error occurred during the locking process (I/O exception)
-    /// @throws LockingBusyException if a lock is already taken by someone
-    synchronized void tryLock() {
+    synchronized boolean tryLock() {
         if (isLocked()) {
-            return;
+            return true;
         }
 
         LOG.log(Level.DEBUG, "Locking {0}", file);
@@ -81,8 +79,9 @@ final class Lock implements AutoCloseable {
         try {
             lock = ch.tryLock();
         } catch (OverlappingFileLockException ex) {
+            // held by another Lock in this JVM
             closeQuietly(ch);
-            throw new LockingBusyException("Lock is already held by this JVM", ex);
+            return false;
         } catch (IOException ex) {
             closeQuietly(ch);
             throw new LockingException(format("Unable to lock file '%s'", file), ex);
@@ -90,11 +89,12 @@ final class Lock implements AutoCloseable {
 
         if (lock == null) {
             closeQuietly(ch);
-            throw new LockingBusyException("Lock is already held by another process", null);
+            return false;
         }
 
         channel = ch;
         fileLock = lock;
+        return true;
     }
 
     private void createParentDirs() {

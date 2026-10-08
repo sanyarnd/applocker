@@ -15,7 +15,9 @@ final class LockHolderProcess {
                 .setPath(Paths.get(args[0]))
                 .setMessageHandler(message -> "pong:" + message)
                 .build();
-        locker.lock();
+        if (!locker.tryLock()) {
+            throw new IllegalStateException("lock is busy");
+        }
 
         System.out.println(READY);
         System.out.flush();
