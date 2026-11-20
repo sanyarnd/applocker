@@ -5,7 +5,7 @@ instancio = "6.2.1"
 assertj = "3.27.7"
 jspecify = "1.0.1"
 errorprone = "2.52.0"
-nullaway = "0.14.3"
+nullaway = "0.14.4"
 palantir-java-format = "2.102.0"
 
 [libraries]
